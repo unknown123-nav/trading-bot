@@ -6,17 +6,17 @@ import time
 from bot_engine import run_bots
 import mysql.connector
 
-# ✅ Dummy web server for Render
+#  Dummy web server for Render
 def start_dummy_server():
     port = int(os.environ.get("PORT", 10000))
     with TCPServer(("", port), SimpleHTTPRequestHandler) as httpd:
-        print(f"✅ Dummy server running on port {port}")
+        print(f" Dummy server running on port {port}")
         httpd.serve_forever()
 
-# ✅ Run dummy server in background
+#  Run dummy server in background
 threading.Thread(target=start_dummy_server, daemon=True).start()
 
-# ✅ DB connection
+#  DB connection
 conn = mysql.connector.connect(
     host="hopper.proxy.rlwy.net",
     user="root",
@@ -25,10 +25,10 @@ conn = mysql.connector.connect(
     port=28847
 )
 
-print("✅ Connected to Railway DB")
-print("🚀 Python Bot Engine Started")
+print(" Connected to Railway DB")
+print(" Python Bot Engine Started")
 
-# ✅ Bot loop
+#  Bot loop
 while True:
     try:
         run_bots()
