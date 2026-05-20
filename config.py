@@ -1,0 +1,17 @@
+DB_CONFIG = {
+    "host": "hopper.proxy.rlwy.net",
+    "user": "root",
+    "password": "LygrVoBHOocJwSIDejJqBNVIjbziUGxo",
+    "database": "railway",
+    "port": int("28847")
+}
+
+SYMBOLS = [
+    "BTC-USDT",
+    "ETH-USDT",
+    "SOL-USDT",
+    "XRP-USDT",
+    "ADA-USDT",
+    "DOGE-USDT"
+]
+
