@@ -64,7 +64,7 @@ def clean_old_data():
 
         print(" Cleaning old data...")
 
-        #  signals_1m
+        # signals_1m
         cursor.execute("""
             DELETE FROM signals_1m
             WHERE id NOT IN (
@@ -76,7 +76,7 @@ def clean_old_data():
             )
         """)
 
-        #  signals_3m
+        # signals_3m
         cursor.execute("""
             DELETE FROM signals_3m
             WHERE id NOT IN (
@@ -88,7 +88,7 @@ def clean_old_data():
             )
         """)
 
-        #  signals_30m
+        # signals_30m
         cursor.execute("""
             DELETE FROM signals_30m
             WHERE id NOT IN (
@@ -101,3 +101,9 @@ def clean_old_data():
         """)
 
         conn.commit()
+        conn.close()
+
+        print("Cleanup completed")
+
+    except Exception as e:
+        print("Cleanup error:", e)
