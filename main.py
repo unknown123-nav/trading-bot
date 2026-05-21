@@ -107,3 +107,25 @@ def clean_old_data():
 
     except Exception as e:
         print("Cleanup error:", e)
+# ==============================
+#  BOT LOOP 
+# ==============================
+
+counter = 0
+
+while True:
+    try:
+        print(" Running bot cycle...")
+
+        run_bots()
+
+        counter += 1
+
+        #  run cleanup every 60 cycles (~1 hour)
+        if counter % 60 == 0:
+            clean_old_data()
+
+    except Exception as e:
+        print("ERROR:", e)
+
+    time.sleep(60)
