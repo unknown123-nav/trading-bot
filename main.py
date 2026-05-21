@@ -25,7 +25,7 @@ threading.Thread(target=start_dummy_server, daemon=True).start()
 def keep_alive():
     url = os.environ.get(
         "RENDER_URL",
-        "https://trading-bot-1-5457.onrender.com"  #  replace if your URL differs
+        "https://trading-bot-1-5457.onrender.com"  
     )
 
     while True:
