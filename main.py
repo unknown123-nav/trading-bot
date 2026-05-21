@@ -4,11 +4,11 @@ from socketserver import TCPServer
 import os
 import time
 import requests
-from bot_engine import run_bots
 import mysql.connector
+from bot_engine import run_bots
 
 # ==============================
-#  DUMMY WEB SERVER (REQUIRED)
+#  DUMMY WEB SERVER
 # ==============================
 def start_dummy_server():
     port = int(os.environ.get("PORT", 10000))
@@ -18,14 +18,13 @@ def start_dummy_server():
 
 threading.Thread(target=start_dummy_server, daemon=True).start()
 
-
 # ==============================
-#  KEEP ALIVE (IMPORTANT )
+#  KEEP ALIVE (PREVENT SLEEP)
 # ==============================
 def keep_alive():
     url = os.environ.get(
         "RENDER_URL",
-        "https://trading-bot-1-5457.onrender.com"  
+        "https://trading-bot-1-5457.onrender.com"
     )
 
     while True:
@@ -35,34 +34,70 @@ def keep_alive():
         except Exception as e:
             print("Ping error:", e)
 
-        time.sleep(300)  # every 5 min
+        time.sleep(300)  # every 5 minutes
 
 threading.Thread(target=keep_alive, daemon=True).start()
 
-
 # ==============================
-#  DATABASE CONNECTION
+#  DATABASE CONNECTION FUNCTION
 # ==============================
-conn = mysql.connector.connect(
-    host="hopper.proxy.rlwy.net",
-    user="root",
-    password="LygrVoBHOocJwSIDejJqBNVIjbziUGxo",
-    database="railway",
-    port=28847
-)
+def get_connection():
+    return mysql.connector.connect(
+        host="hopper.proxy.rlwy.net",
+        user="root",
+        password="LygrVoBHOocJwSIDejJqBNVIjbziUGxo",
+        database="railway",
+        port=28847
+    )
 
 print(" Connected to Railway DB")
 print(" Python Bot Engine Started")
 
 
 # ==============================
-#  BOT LOOP
+#  CLEANUP FUNCTION 
 # ==============================
-while True:
+def clean_old_data():
     try:
-        print(" Running bot cycle...")
-        run_bots()
-    except Exception as e:
-        print("ERROR:", e)
+        conn = get_connection()
+        cursor = conn.cursor()
 
-    time.sleep(60)
+        print(" Cleaning old data...")
+
+        #  signals_1m
+        cursor.execute("""
+            DELETE FROM signals_1m
+            WHERE id NOT IN (
+                SELECT id FROM (
+                    SELECT id FROM signals_1m
+                    ORDER BY created_at DESC
+                    LIMIT 20000
+                ) t
+            )
+        """)
+
+        #  signals_3m
+        cursor.execute("""
+            DELETE FROM signals_3m
+            WHERE id NOT IN (
+                SELECT id FROM (
+                    SELECT id FROM signals_3m
+                    ORDER BY created_at DESC
+                    LIMIT 20000
+                ) t
+            )
+        """)
+
+        #  signals_30m
+        cursor.execute("""
+            DELETE FROM signals_30m
+            WHERE id NOT IN (
+                SELECT id FROM (
+                    SELECT id FROM signals_30m
+                    ORDER BY created_at DESC
+                    LIMIT 20000
+                ) t
+            )
+        """)
+
+        conn.commit()
