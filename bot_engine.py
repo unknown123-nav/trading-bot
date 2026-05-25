@@ -103,7 +103,7 @@ def process_timeframe(
     # CREATE PAPER TRADE
     # =====================================
 
-    if confidence >= 35:
+    if confidence >= 55:
 
         create_paper_trade(
             symbol,
