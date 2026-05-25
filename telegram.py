@@ -2,7 +2,7 @@ import requests
 import time
 
 
-BOT_TOKEN = "7982865948:AAGqCmaBVvptrmbYI-MRSusJC8ZdIIq3_rc"
+BOT_TOKEN = "8864549600:AAH8S3USLHU6mOHSbcfxsMdrjYn47TXGCBY"
 
 CHAT_ID = "-5211298112"
 
