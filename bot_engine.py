@@ -2,7 +2,7 @@ from market import get_data
 from db import update_bot, save_signal
 from config import SYMBOLS
 from db import create_paper_trade
-
+from telegram import send_telegram
 
 # =========================================
 # PNL CALCULATION
@@ -102,16 +102,29 @@ def process_timeframe(
     # CREATE PAPER TRADE
     # =====================================
 
-    if confidence >= 40:
+    if confidence >= 75:
 
-        create_paper_trade(
-            symbol,
-            signal,
-            latest,
-            confidence,
-            timeframe
-        )
+    create_paper_trade(
+        symbol,
+        signal,
+        latest,
+        confidence,
+        timeframe
+    )
 
+    message = f"""
+🚨 SIGNAL — {symbol}
+
+⏱ Timeframe: {timeframe}
+
+📈 Direction: {signal}
+
+🤖 Confidence: {confidence}%
+
+🎯 Entry: {latest}
+"""
+
+    send_telegram(message)
 
 # =========================================
 # MAIN BOT ENGINE
