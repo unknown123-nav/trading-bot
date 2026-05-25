@@ -4,6 +4,7 @@ from config import SYMBOLS
 from db import create_paper_trade
 from telegram import send_telegram
 
+
 # =========================================
 # PNL CALCULATION
 # =========================================
@@ -104,15 +105,15 @@ def process_timeframe(
 
     if confidence >= 75:
 
-    create_paper_trade(
-        symbol,
-        signal,
-        latest,
-        confidence,
-        timeframe
-    )
+        create_paper_trade(
+            symbol,
+            signal,
+            latest,
+            confidence,
+            timeframe
+        )
 
-    message = f"""
+        message = f"""
 🚨 SIGNAL — {symbol}
 
 ⏱ Timeframe: {timeframe}
@@ -124,7 +125,8 @@ def process_timeframe(
 🎯 Entry: {latest}
 """
 
-    send_telegram(message)
+        send_telegram(message)
+
 
 # =========================================
 # MAIN BOT ENGINE
