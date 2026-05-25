@@ -1,8 +1,12 @@
-﻿from market import get_data
+from market import get_data
 from db import update_bot, save_signal
 from config import SYMBOLS
 from db import create_paper_trade
 
+
+# =========================================
+# PNL CALCULATION
+# =========================================
 
 def calculate_pnl(df):
 
@@ -10,30 +14,104 @@ def calculate_pnl(df):
         return 0
 
     return float(
-        df.iloc[0]['close'] - df.iloc[-1]['close']
+        df.iloc[0]['close']
+        - df.iloc[-1]['close']
     )
 
+
 # =========================================
-# CONFIDENCE CALCULATION
+# AI CONFIDENCE
 # =========================================
 
 def calculate_confidence(current, average):
 
-    # percentage move
     pct_move = abs(
         (current - average) / average
     ) * 100
 
-    # normalize into cleaner AI-style range
     confidence = max(
         50,
         min(
-            round(50 + (pct_move * 10), 2),
+            round(
+                50 + (pct_move * 10),
+                2
+            ),
             99
         )
     )
 
     return confidence
+
+
+# =========================================
+# GENERIC SIGNAL ENGINE
+# =========================================
+
+def process_timeframe(
+    symbol,
+    timeframe,
+    limit,
+    table_name
+):
+
+    df = get_data(
+        symbol,
+        timeframe,
+        limit
+    )
+
+    if df.empty:
+        return
+
+    latest = df.iloc[0]['close']
+
+    average = df['close'].mean()
+
+    difference = latest - average
+
+    confidence = calculate_confidence(
+        latest,
+        average
+    )
+
+    signal = (
+        "LONG"
+        if difference > 0
+        else "SHORT"
+    )
+
+    print(
+        f"{symbol} | {timeframe} | "
+        f"{signal} | "
+        f"Confidence: {confidence}"
+    )
+
+    # =====================================
+    # SAVE SIGNAL
+    # =====================================
+
+    save_signal(
+        table_name,
+        symbol,
+        signal,
+        confidence,
+        latest
+    )
+
+    # =====================================
+    # CREATE PAPER TRADE
+    # =====================================
+
+    if confidence >= 40:
+
+        create_paper_trade(
+            symbol,
+            signal,
+            latest,
+            confidence,
+            timeframe
+        )
+
 
 # =========================================
 # MAIN BOT ENGINE
@@ -51,131 +129,82 @@ def run_bots():
         print(f"\nRunning {bot_name}")
 
         # =====================================
-        # 1M SIGNAL
+        # 1M
         # =====================================
 
-        df_1m = get_data(
+        process_timeframe(
             symbol,
-            '1m',
-            60
+            "1m",
+            60,
+            "signals_1m"
         )
 
-        if not df_1m.empty:
-
-            latest = df_1m.iloc[0]['close']
-
-            history = df_1m.iloc[3:]['close'].mean()
-
-            difference = latest - history
-
-            confidence = calculate_confidence(
-                latest,
-                history
-            )
-
-            signal = (
-                "LONG"
-                if difference > 0
-                else "SHORT"
-            )
-
-            save_signal(
-                "signals_1m",
-                symbol,
-                signal,
-                confidence,
-                latest
-            )
-
-            if confidence >= 40:
-                create_paper_trade(symbol, signal, latest, confidence, "1m")
         # =====================================
-        # 3M SIGNAL
+        # 3M
         # =====================================
 
-        df_3m = get_data(
+        process_timeframe(
             symbol,
-            '3m',
-            20
+            "3m",
+            40,
+            "signals_3m"
         )
 
-        if not df_3m.empty:
-
-            latest = df_3m.iloc[0]['close']
-
-            history = df_3m.iloc[2:]['close'].mean()
-
-            difference = latest - history
-
-            confidence = calculate_confidence(
-                latest,
-                history
-            )
-
-            signal = (
-                "LONG"
-                if difference > 0
-                else "SHORT"
-            )
-
-            save_signal(
-                "signals_3m",
-                symbol,
-                signal,
-                confidence,
-                latest
-            )
-            if confidence >= 40:
-                create_paper_trade(symbol, signal, latest, confidence, "1m")
-
         # =====================================
-        # 30M SIGNAL
+        # 5M
         # =====================================
 
-        df_30m = get_data(
+        process_timeframe(
             symbol,
-            '30m',
-            20
+            "5m",
+            40,
+            "signals_5m"
         )
 
-        if not df_30m.empty:
+        # =====================================
+        # 15M
+        # =====================================
 
-            latest = df_30m.iloc[0]['close']
+        process_timeframe(
+            symbol,
+            "15m",
+            40,
+            "signals_15m"
+        )
 
-            avg = df_30m['close'].mean()
+        # =====================================
+        # 30M
+        # =====================================
 
-            difference = latest - avg
+        process_timeframe(
+            symbol,
+            "30m",
+            40,
+            "signals_30m"
+        )
 
-            confidence = calculate_confidence(
-                latest,
-                avg
-            )
+        # =====================================
+        # 1H
+        # =====================================
 
-            signal = (
-                "LONG"
-                if difference > 0
-                else "SHORT"
-            )
-
-            save_signal(
-                "signals_30m",
-                symbol,
-                signal,
-                confidence,
-                latest
-            )
-            if confidence >= 40:
-                create_paper_trade(symbol, signal, latest, confidence, "1m")
+        process_timeframe(
+            symbol,
+            "1H",
+            40,
+            "signals_1h"
+        )
 
         # =====================================
         # BOT STATUS
         # =====================================
 
-        pnl = calculate_pnl(
-            df_1m
-            if not df_1m.empty
-            else df_30m
+        df_status = get_data(
+            symbol,
+            '1m',
+            20
         )
+
+        pnl = calculate_pnl(df_status)
 
         update_bot(
             bot_name,
