@@ -119,7 +119,8 @@ while True:
         print(" Running bot cycle...")
 
         run_bots()
-
+        check_replies()
+        
         counter += 1
 
         #  run cleanup every 60 cycles (~1 hour)
