@@ -135,3 +135,76 @@ def get_active_trades():
         print("Trade fetch error:", e)
 
         return []
+def get_pnl_report():
+
+    try:
+
+        report = {}
+
+        # =====================================
+        # TOTAL SIGNALS
+        # =====================================
+
+        cursor.execute("""
+            SELECT COUNT(*)
+            FROM signals_1m
+        """)
+
+        report["signals"] = cursor.fetchone()[0]
+
+        # =====================================
+        # ACTIVE TRADES
+        # =====================================
+
+        cursor.execute("""
+            SELECT COUNT(*)
+            FROM paper_trades
+            WHERE status = 'OPEN'
+        """)
+
+        report["active_trades"] = cursor.fetchone()[0]
+
+        # =====================================
+        # WIN RATE
+        # =====================================
+
+        cursor.execute("""
+            SELECT COUNT(*)
+            FROM paper_trades
+            WHERE pnl_percent > 0
+        """)
+
+        wins = cursor.fetchone()[0]
+
+        cursor.execute("""
+            SELECT COUNT(*)
+            FROM paper_trades
+            WHERE pnl_percent IS NOT NULL
+        """)
+
+        total = cursor.fetchone()[0]
+
+        if total > 0:
+
+            report["win_rate"] = round(
+                (wins / total) * 100,
+                2
+            )
+
+        else:
+
+            report["win_rate"] = 0
+
+        # =====================================
+        # AI ACCURACY
+        # =====================================
+
+        report["ai_accuracy"] = report["win_rate"]
+
+        return report
+
+    except Exception as e:
+
+        print("PNL report error:", e)
+
+        return None
