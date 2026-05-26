@@ -1,5 +1,7 @@
 import requests
 import time
+from db import get_latest_signals
+from db import get_active_trades
 
 
 BOT_TOKEN = "8864549600:AAH8S3USLHU6mOHSbcfxsMdrjYn47TXGCBY"
@@ -165,15 +167,29 @@ def check_replies():
 
             elif lower == "signals":
 
-                reply = (
-                    "🚨 LIVE AI SIGNALS\n\n"
+    signals = get_latest_signals()
 
-                    "BTC-USDT → LONG (78%)\n"
-                    "ETH-USDT → SHORT (72%)\n"
-                    "SOL-USDT → LONG (81%)\n\n"
+    if len(signals) == 0:
 
-                    "⚡ Real-time market analysis active."
-                )
+        reply = (
+            "⚠️ No live signals available."
+        )
+
+    else:
+
+        reply = "🚨 LIVE AI SIGNALS\n\n"
+
+        for s in signals:
+
+            reply += (
+                f"{s[0]} → "
+                f"{s[1]} "
+                f"({round(float(s[2]), 2)}%)\n"
+            )
+
+        reply += (
+            "\n⚡ Real-time market analysis active."
+        )
 
             # =====================================
             # AI
@@ -198,16 +214,33 @@ def check_replies():
 
             elif lower == "pnl":
 
-                reply = (
-                    "💰 PERFORMANCE REPORT\n\n"
+    report = get_pnl_report()
 
-                    "📈 Win Rate: 73%\n"
-                    "📊 Active Trades: 12\n"
-                    "⚡ Total Signals: 1842\n"
-                    "🟢 AI Accuracy: 81%\n\n"
+    if report is None:
 
-                    "🚀 Trading performance stable."
-                )
+        reply = (
+            "⚠️ Unable to load performance report."
+        )
+
+    else:
+
+        reply = (
+            "💰 PERFORMANCE REPORT\n\n"
+
+            f"📈 Win Rate: "
+            f"{report['win_rate']}%\n"
+
+            f"📊 Active Trades: "
+            f"{report['active_trades']}\n"
+
+            f"⚡ Total Signals: "
+            f"{report['signals']}\n"
+
+            f"🟢 AI Accuracy: "
+            f"{report['ai_accuracy']}%\n\n"
+
+            "🚀 Real-time trading analytics active."
+        )
 
             # =====================================
             # TRADES
@@ -215,15 +248,28 @@ def check_replies():
 
             elif lower == "trades":
 
-                reply = (
-                    "📂 ACTIVE TRADES\n\n"
+    trades = get_active_trades()
 
-                    "ADA-USDT → SHORT\n"
-                    "SOL-USDT → LONG\n"
-                    "DOGE-USDT → SHORT\n\n"
+    if len(trades) == 0:
 
-                    "⚡ Trade monitoring active."
-                )
+        reply = (
+            "⚠️ No active trades."
+        )
+
+    else:
+
+        reply = "📂 ACTIVE TRADES\n\n"
+
+        for t in trades:
+
+            reply += (
+                f"{t[0]} → "
+                f"{t[1]}\n"
+            )
+
+        reply += (
+            "\n⚡ Trade monitoring active."
+        )
 
             # =====================================
             # UNKNOWN COMMAND
