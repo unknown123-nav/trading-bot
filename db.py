@@ -87,3 +87,51 @@ def create_paper_trade(pair, side, entry_price, confidence, timeframe):
 
     except Exception as e:
         print("Trade creation error:", e)
+
+def get_latest_signals():
+
+    try:
+
+        query = """
+        SELECT pair_name, signal_type, confidence
+        FROM signals_1m
+        ORDER BY created_at DESC
+        LIMIT 5
+        """
+
+        cursor.execute(query)
+
+        rows = cursor.fetchall()
+
+        return rows
+
+    except Exception as e:
+
+        print("Signal fetch error:", e)
+
+        return []
+
+
+def get_active_trades():
+
+    try:
+
+        query = """
+        SELECT pair, side
+        FROM paper_trades
+        WHERE status = 'OPEN'
+        ORDER BY created_at DESC
+        LIMIT 5
+        """
+
+        cursor.execute(query)
+
+        rows = cursor.fetchall()
+
+        return rows
+
+    except Exception as e:
+
+        print("Trade fetch error:", e)
+
+        return []
