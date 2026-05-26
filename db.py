@@ -1,18 +1,46 @@
-﻿import mysql.connector
+import mysql.connector
+
 from config import DB_CONFIG
 
-conn = mysql.connector.connect(**DB_CONFIG)
 
-cursor = conn.cursor()
+# =========================================
+# CREATE NEW CONNECTION
+# =========================================
+
+def get_connection():
+
+    return mysql.connector.connect(
+        **DB_CONFIG
+    )
 
 
-def save_signal(table, pair, signal_type, confidence, price):
+# =========================================
+# SAVE SIGNAL
+# =========================================
+
+def save_signal(
+    table,
+    pair,
+    signal_type,
+    confidence,
+    price
+):
+
+    conn = get_connection()
+
+    cursor = conn.cursor()
 
     try:
 
         query = f"""
         INSERT INTO {table}
-        (pair_name, signal_type, confidence, entry_price, created_at)
+        (
+            pair_name,
+            signal_type,
+            confidence,
+            entry_price,
+            created_at
+        )
         VALUES (%s, %s, %s, %s, NOW())
         """
 
@@ -26,17 +54,53 @@ def save_signal(table, pair, signal_type, confidence, price):
         conn.commit()
 
     except Exception as e:
-        print("Signal save error:", e)
+
+        print(
+            "Signal save error:",
+            e
+        )
+
+    finally:
+
+        cursor.close()
+
+        conn.close()
 
 
-def update_bot(bot_name, status, pair, pnl):
+# =========================================
+# UPDATE BOT STATUS
+# =========================================
+
+def update_bot(
+    bot_name,
+    status,
+    pair,
+    pnl
+):
+
+    conn = get_connection()
+
+    cursor = conn.cursor()
 
     try:
 
         query = """
         INSERT INTO bot_status
-        (bot_name, status, current_pair, pnl_today, last_heartbeat)
-        VALUES (%s, %s, %s, %s, NOW())
+        (
+            bot_name,
+            status,
+            current_pair,
+            pnl_today,
+            last_heartbeat
+        )
+        VALUES
+        (
+            %s,
+            %s,
+            %s,
+            %s,
+            NOW()
+        )
 
         ON DUPLICATE KEY UPDATE
         status = VALUES(status),
@@ -55,9 +119,22 @@ def update_bot(bot_name, status, pair, pnl):
         conn.commit()
 
     except Exception as e:
-        print("Bot update error:", e)
+
+        print(
+            "Bot update error:",
+            e
+        )
+
+    finally:
+
+        cursor.close()
+
+        conn.close()
 
 
+# =========================================
+# CREATE PAPER TRADE
+# =========================================
 
 def create_paper_trade(
     pair,
@@ -66,6 +143,10 @@ def create_paper_trade(
     confidence,
     timeframe
 ):
+
+    conn = get_connection()
+
+    cursor = conn.cursor()
 
     try:
 
@@ -104,7 +185,7 @@ def create_paper_trade(
             return
 
         # =====================================
-        # CREATE NEW TRADE
+        # CREATE TRADE
         # =====================================
 
         query = """
@@ -161,12 +242,31 @@ def create_paper_trade(
             "Trade creation error:",
             e
         )
+
+    finally:
+
+        cursor.close()
+
+        conn.close()
+
+
+# =========================================
+# GET LATEST SIGNALS
+# =========================================
+
 def get_latest_signals():
+
+    conn = get_connection()
+
+    cursor = conn.cursor()
 
     try:
 
         query = """
-        SELECT pair_name, signal_type, confidence
+        SELECT
+            pair_name,
+            signal_type,
+            confidence
         FROM signals_1m
         ORDER BY created_at DESC
         LIMIT 5
@@ -180,12 +280,29 @@ def get_latest_signals():
 
     except Exception as e:
 
-        print("Signal fetch error:", e)
+        print(
+            "Signal fetch error:",
+            e
+        )
 
         return []
 
+    finally:
+
+        cursor.close()
+
+        conn.close()
+
+
+# =========================================
+# GET ACTIVE TRADES
+# =========================================
 
 def get_active_trades():
+
+    conn = get_connection()
+
+    cursor = conn.cursor()
 
     try:
 
@@ -205,10 +322,29 @@ def get_active_trades():
 
     except Exception as e:
 
-        print("Trade fetch error:", e)
+        print(
+            "Trade fetch error:",
+            e
+        )
 
         return []
+
+    finally:
+
+        cursor.close()
+
+        conn.close()
+
+
+# =========================================
+# GET PNL REPORT
+# =========================================
+
 def get_pnl_report():
+
+    conn = get_connection()
+
+    cursor = conn.cursor()
 
     try:
 
@@ -286,35 +422,77 @@ def get_pnl_report():
 
     except Exception as e:
 
-        print("PNL report error:", e)
+        print(
+            "PNL report error:",
+            e
+        )
 
         return None
 
+    finally:
+
+        cursor.close()
+
+        conn.close()
+
+
+# =========================================
+# GET OPEN TRADES
+# =========================================
+
 def get_open_trades():
+
+    conn = get_connection()
+
+    cursor = conn.cursor()
 
     try:
 
         query = """
-        SELECT id, pair, side, entry_price
+        SELECT
+            id,
+            pair,
+            side,
+            entry_price
         FROM paper_trades
         WHERE status = 'OPEN'
         """
 
         cursor.execute(query)
 
-        return cursor.fetchall()
+        rows = cursor.fetchall()
+
+        return rows
 
     except Exception as e:
 
-        print("Open trade fetch error:", e)
+        print(
+            "Open trade fetch error:",
+            e
+        )
 
         return []
+
+    finally:
+
+        cursor.close()
+
+        conn.close()
+
+
+# =========================================
+# CLOSE TRADE
+# =========================================
 
 def close_trade(
     trade_id,
     exit_price,
     pnl
 ):
+
+    conn = get_connection()
+
+    cursor = conn.cursor()
 
     try:
 
@@ -338,4 +516,13 @@ def close_trade(
 
     except Exception as e:
 
-        print("Close trade error:", e)
+        print(
+            "Close trade error:",
+            e
+        )
+
+    finally:
+
+        cursor.close()
+
+        conn.close()
