@@ -32,10 +32,12 @@ def send_telegram(message):
 
     try:
 
+        time.sleep(1)
         response = requests.post(
-            url,
+            send_url,
             json=payload
         )
+        print(response.text)
 
         print(
             "Telegram sent:",
@@ -314,9 +316,17 @@ def check_replies():
                 "text": reply
             }
 
-            requests.post(
-                send_url,
-                json=payload
+            try:
+                time.sleep(1)
+                response = requests.post(
+                    send_url,
+                    json=payload
+                )
+                print(response.text)
+
+except Exception as e:
+
+    print("Telegram reply error:", e)
             )
 
             print(
