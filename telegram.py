@@ -2,7 +2,7 @@ import requests
 import time
 from db import get_latest_signals
 from db import get_active_trades
-
+from db import get_pnl_report
 
 BOT_TOKEN = "8864549600:AAH8S3USLHU6mOHSbcfxsMdrjYn47TXGCBY"
 
