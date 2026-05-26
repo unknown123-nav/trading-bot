@@ -1,8 +1,11 @@
 import requests
 import time
-from db import get_latest_signals
-from db import get_active_trades
-from db import get_pnl_report
+
+from db import (
+    get_latest_signals,
+    get_active_trades,
+    get_pnl_report
+)
 
 BOT_TOKEN = "8864549600:AAH8S3USLHU6mOHSbcfxsMdrjYn47TXGCBY"
 
@@ -18,8 +21,8 @@ LAST_UPDATE_ID = None
 def send_telegram(message):
 
     url = (
-    f"https://api.telegram.org/bot"
-    f"{BOT_TOKEN}/getUpdates?offset={LAST_UPDATE_ID + 1 if LAST_UPDATE_ID else ''}"
+        f"https://api.telegram.org/bot"
+        f"{BOT_TOKEN}/sendMessage"
     )
 
     payload = {
@@ -89,8 +92,10 @@ def check_replies():
 
             update_id = update["update_id"]
 
-            if update_id <= LAST_UPDATE_ID:
-                continue
+            if LAST_UPDATE_ID is not None:
+
+                if update_id <= LAST_UPDATE_ID:
+                    continue
 
             LAST_UPDATE_ID = update_id
 
@@ -98,6 +103,11 @@ def check_replies():
                 continue
 
             message = update["message"]
+
+            # =====================================
+            # IGNORE BOT MESSAGES
+            # =====================================
+
             if message.get("from", {}).get("is_bot"):
                 continue
 
@@ -167,29 +177,31 @@ def check_replies():
 
             elif lower == "signals":
 
-    signals = get_latest_signals()
+                signals = get_latest_signals()
 
-    if len(signals) == 0:
+                if len(signals) == 0:
 
-        reply = (
-            "⚠️ No live signals available."
-        )
+                    reply = (
+                        "⚠️ No live signals available."
+                    )
 
-    else:
+                else:
 
-        reply = "🚨 LIVE AI SIGNALS\n\n"
+                    reply = (
+                        "🚨 LIVE AI SIGNALS\n\n"
+                    )
 
-        for s in signals:
+                    for s in signals:
 
-            reply += (
-                f"{s[0]} → "
-                f"{s[1]} "
-                f"({round(float(s[2]), 2)}%)\n"
-            )
+                        reply += (
+                            f"{s[0]} → "
+                            f"{s[1]} "
+                            f"({round(float(s[2]), 2)}%)\n"
+                        )
 
-        reply += (
-            "\n⚡ Real-time market analysis active."
-        )
+                    reply += (
+                        "\n⚡ Real-time market analysis active."
+                    )
 
             # =====================================
             # AI
@@ -214,33 +226,33 @@ def check_replies():
 
             elif lower == "pnl":
 
-    report = get_pnl_report()
+                report = get_pnl_report()
 
-    if report is None:
+                if report is None:
 
-        reply = (
-            "⚠️ Unable to load performance report."
-        )
+                    reply = (
+                        "⚠️ Unable to load performance report."
+                    )
 
-    else:
+                else:
 
-        reply = (
-            "💰 PERFORMANCE REPORT\n\n"
+                    reply = (
+                        "💰 PERFORMANCE REPORT\n\n"
 
-            f"📈 Win Rate: "
-            f"{report['win_rate']}%\n"
+                        f"📈 Win Rate: "
+                        f"{report['win_rate']}%\n"
 
-            f"📊 Active Trades: "
-            f"{report['active_trades']}\n"
+                        f"📊 Active Trades: "
+                        f"{report['active_trades']}\n"
 
-            f"⚡ Total Signals: "
-            f"{report['signals']}\n"
+                        f"⚡ Total Signals: "
+                        f"{report['signals']}\n"
 
-            f"🟢 AI Accuracy: "
-            f"{report['ai_accuracy']}%\n\n"
+                        f"🟢 AI Accuracy: "
+                        f"{report['ai_accuracy']}%\n\n"
 
-            "🚀 Real-time trading analytics active."
-        )
+                        "🚀 Real-time trading analytics active."
+                    )
 
             # =====================================
             # TRADES
@@ -248,28 +260,30 @@ def check_replies():
 
             elif lower == "trades":
 
-    trades = get_active_trades()
+                trades = get_active_trades()
 
-    if len(trades) == 0:
+                if len(trades) == 0:
 
-        reply = (
-            "⚠️ No active trades."
-        )
+                    reply = (
+                        "⚠️ No active trades."
+                    )
 
-    else:
+                else:
 
-        reply = "📂 ACTIVE TRADES\n\n"
+                    reply = (
+                        "📂 ACTIVE TRADES\n\n"
+                    )
 
-        for t in trades:
+                    for t in trades:
 
-            reply += (
-                f"{t[0]} → "
-                f"{t[1]}\n"
-            )
+                        reply += (
+                            f"{t[0]} → "
+                            f"{t[1]}\n"
+                        )
 
-        reply += (
-            "\n⚡ Trade monitoring active."
-        )
+                    reply += (
+                        "\n⚡ Trade monitoring active."
+                    )
 
             # =====================================
             # UNKNOWN COMMAND
