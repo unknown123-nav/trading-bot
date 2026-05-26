@@ -96,6 +96,8 @@ def check_replies():
                 continue
 
             message = update["message"]
+            if message.get("from", {}).get("is_bot"):
+                continue
 
             text = message.get("text", "")
 
