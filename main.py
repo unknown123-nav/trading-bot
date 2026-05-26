@@ -4,6 +4,8 @@ import time
 import requests
 import mysql.connector
 
+from flask import Flask
+
 from bot_engine import (
     run_bots,
     monitor_trades
@@ -11,30 +13,25 @@ from bot_engine import (
 
 from telegram import check_replies
 
-# ==============================
-#  KEEP ALIVE (PREVENT SLEEP)
-# ==============================
-def keep_alive():
-    url = os.environ.get(
-        "RENDER_URL",
-        "https://trading-bot-1-5457.onrender.com"
-    )
 
-    while True:
-        try:
-            requests.get(url)
-            print(" Pinged self to keep alive")
-        except Exception as e:
-            print("Ping error:", e)
+# =========================================
+# FLASK SERVER
+# =========================================
 
-        time.sleep(300)  # every 5 minutes
+app = Flask(__name__)
 
-threading.Thread(target=keep_alive, daemon=True).start()
+@app.route("/")
+def home():
 
-# ==============================
-#  DATABASE CONNECTION FUNCTION
-# ==============================
+    return "KRYPTRA AI ENGINE RUNNING"
+
+
+# =========================================
+# DATABASE CONNECTION
+# =========================================
+
 def get_connection():
+
     return mysql.connector.connect(
         host="hopper.proxy.rlwy.net",
         user="root",
@@ -43,67 +40,61 @@ def get_connection():
         port=28847
     )
 
-print(" Connected to Railway DB")
-print(" Python Bot Engine Started")
+
+print("✅ Connected to Railway DB")
+print("🤖 Python Bot Engine Started")
 
 
-# ==============================
-#  CLEANUP FUNCTION 
-# ==============================
+# =========================================
+# CLEANUP FUNCTION
+# =========================================
+
 def clean_old_data():
+
     try:
+
         conn = get_connection()
+
         cursor = conn.cursor()
 
-        print(" Cleaning old data...")
+        print("🧹 Cleaning old data...")
 
-        # signals_1m
-        cursor.execute("""
-            DELETE FROM signals_1m
-            WHERE id NOT IN (
-                SELECT id FROM (
-                    SELECT id FROM signals_1m
-                    ORDER BY created_at DESC
-                    LIMIT 20000
-                ) t
-            )
-        """)
+        tables = [
+            "signals_1m",
+            "signals_3m",
+            "signals_5m",
+            "signals_15m",
+            "signals_30m",
+            "signals_1h"
+        ]
 
-        # signals_3m
-        cursor.execute("""
-            DELETE FROM signals_3m
-            WHERE id NOT IN (
-                SELECT id FROM (
-                    SELECT id FROM signals_3m
-                    ORDER BY created_at DESC
-                    LIMIT 20000
-                ) t
-            )
-        """)
+        for table in tables:
 
-        # signals_30m
-        cursor.execute("""
-            DELETE FROM signals_30m
-            WHERE id NOT IN (
-                SELECT id FROM (
-                    SELECT id FROM signals_30m
-                    ORDER BY created_at DESC
-                    LIMIT 20000
-                ) t
-            )
-        """)
+            cursor.execute(f"""
+                DELETE FROM {table}
+                WHERE id NOT IN (
+                    SELECT id FROM (
+                        SELECT id FROM {table}
+                        ORDER BY created_at DESC
+                        LIMIT 20000
+                    ) t
+                )
+            """)
 
         conn.commit()
+
         conn.close()
 
-        print("Cleanup completed")
+        print("✅ Cleanup completed")
 
     except Exception as e:
+
         print("Cleanup error:", e)
 
-# ==============================
+
+# =========================================
 # ASSISTANT BOT LOOP
-# ==============================
+# =========================================
 
 def assistant_loop():
 
@@ -121,27 +112,60 @@ def assistant_loop():
 
         time.sleep(3)
 
+
+# =========================================
+# TRADING LOOP
+# =========================================
+
+def trading_loop():
+
+    counter = 0
+
+    while True:
+
+        try:
+
+            print("🚀 Running bot cycle...")
+
+            run_bots()
+
+            monitor_trades()
+
+            counter += 1
+
+            if counter % 60 == 0:
+
+                clean_old_data()
+
+        except Exception as e:
+
+            print("Trading Loop Error:", e)
+
+        time.sleep(60)
+
+
+# =========================================
+# START THREADS
+# =========================================
+
 threading.Thread(
     target=assistant_loop,
     daemon=True
 ).start()
 
-counter = 0
+threading.Thread(
+    target=trading_loop,
+    daemon=True
+).start()
 
-while True:
-    try:
-        print(" Running bot cycle...")
 
-        run_bots()
-        monitor_trades()
-        
-        counter += 1
+# =========================================
+# START FLASK APP
+# =========================================
 
-        #  run cleanup every 60 cycles (~1 hour)
-        if counter % 60 == 0:
-            clean_old_data()
+if __name__ == "__main__":
 
-    except Exception as e:
-        print("ERROR:", e)
-
-    time.sleep(60)
+    app.run(
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", 10000))
+    )
