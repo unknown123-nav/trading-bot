@@ -1,11 +1,14 @@
 import threading
-from http.server import SimpleHTTPRequestHandler
-from socketserver import TCPServer
 import os
 import time
 import requests
 import mysql.connector
-from bot_engine import run_bots
+
+from bot_engine import (
+    run_bots,
+    monitor_trades
+)
+
 from telegram import check_replies
 
 # ==============================
