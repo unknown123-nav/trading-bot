@@ -1,3 +1,4 @@
+import time
 from market import get_data
 from db import update_bot, save_signal
 from config import SYMBOLS
