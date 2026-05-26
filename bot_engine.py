@@ -4,6 +4,8 @@ from db import update_bot, save_signal
 from config import SYMBOLS
 from db import create_paper_trade
 from telegram import send_telegram
+from db import get_open_trades
+from db import close_trade
 
 
 # =========================================
@@ -43,11 +45,6 @@ def calculate_confidence(current, average):
     )
 
     return confidence
-
-
-# =========================================
-# GENERIC SIGNAL ENGINE
-# =========================================
 
 # =========================================
 # GENERIC SIGNAL ENGINE
@@ -257,9 +254,113 @@ Multi-Timeframe Momentum Scanner
 
         send_telegram(message)
 
+
+
+# =========================================
+# TRADE MONITOR ENGINE
+# =========================================
+
+def monitor_trades():
+
+    trades = get_open_trades()
+
+    for trade in trades:
+
+        trade_id = trade[0]
+
+        pair = trade[1]
+
+        side = trade[2]
+
+        entry = float(trade[3])
+
+        # =====================================
+        # GET LIVE PRICE
+        # =====================================
+
+        df = get_data(
+            pair,
+            "1m",
+            1
+        )
+
+        if df.empty:
+            continue
+
+        current_price = float(
+            df.iloc[0]['close']
+        )
+
+        # =====================================
+        # CALCULATE PNL
+        # =====================================
+
+        if side == "LONG":
+
+            pnl = (
+                (current_price - entry)
+                / entry
+            ) * 100
+
+        else:
+
+            pnl = (
+                (entry - current_price)
+                / entry
+            ) * 100
+
+        pnl = round(pnl, 2)
+
+        # =====================================
+        # AUTO CLOSE CONDITIONS
+        # =====================================
+
+        if pnl >= 2 or pnl <= -1:
+
+            close_trade(
+                trade_id,
+                current_price,
+                pnl
+            )
+
+            result = (
+                "TAKE PROFIT HIT 🎯"
+                if pnl > 0
+                else "STOP LOSS HIT 🛑"
+            )
+
+            message = f"""
+✅ TRADE CLOSED — {pair}
+
+📈 Direction:
+{side}
+
+💰 Entry:
+{entry}
+
+🎯 Exit:
+{current_price}
+
+📊 Final PNL:
+{pnl}%
+
+📌 Result:
+{result}
+
+🕒 Closed:
+{time.strftime('%Y-%m-%d %H:%M:%S UTC')}
+"""
+
+            send_telegram(message)
+
+            print(
+                f"Trade Closed: {pair} | {pnl}%"
+            )
 # =========================================
 # MAIN BOT ENGINE
 # =========================================
+
+
 
 def run_bots():
 
