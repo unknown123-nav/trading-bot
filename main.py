@@ -9,17 +9,6 @@ from bot_engine import run_bots
 from telegram import check_replies
 
 # ==============================
-#  DUMMY WEB SERVER
-# ==============================
-def start_dummy_server():
-    port = int(os.environ.get("PORT", 10000))
-    with TCPServer(("", port), SimpleHTTPRequestHandler) as httpd:
-        print(f" Dummy server running on port {port}")
-        httpd.serve_forever()
-
-threading.Thread(target=start_dummy_server, daemon=True).start()
-
-# ==============================
 #  KEEP ALIVE (PREVENT SLEEP)
 # ==============================
 def keep_alive():
