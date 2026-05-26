@@ -16,8 +16,8 @@ LAST_UPDATE_ID = None
 def send_telegram(message):
 
     url = (
-        f"https://api.telegram.org/bot"
-        f"{BOT_TOKEN}/sendMessage"
+    f"https://api.telegram.org/bot"
+    f"{BOT_TOKEN}/getUpdates?offset={LAST_UPDATE_ID + 1 if LAST_UPDATE_ID else ''}"
     )
 
     payload = {
