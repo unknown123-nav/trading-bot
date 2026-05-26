@@ -141,6 +141,7 @@ while True:
         print(" Running bot cycle...")
 
         run_bots()
+        monitor_trades()
         
         counter += 1
 
