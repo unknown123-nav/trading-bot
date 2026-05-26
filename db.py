@@ -165,24 +165,32 @@ def get_pnl_report():
         report["active_trades"] = cursor.fetchone()[0]
 
         # =====================================
-        # WIN RATE
+        # WINNING TRADES
         # =====================================
 
         cursor.execute("""
             SELECT COUNT(*)
             FROM paper_trades
-            WHERE pnl_percent > 0
+            WHERE pnl > 0
         """)
 
         wins = cursor.fetchone()[0]
 
+        # =====================================
+        # TOTAL CLOSED TRADES
+        # =====================================
+
         cursor.execute("""
             SELECT COUNT(*)
             FROM paper_trades
-            WHERE pnl_percent IS NOT NULL
+            WHERE pnl IS NOT NULL
         """)
 
         total = cursor.fetchone()[0]
+
+        # =====================================
+        # WIN RATE
+        # =====================================
 
         if total > 0:
 
