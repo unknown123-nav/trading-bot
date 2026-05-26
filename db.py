@@ -59,22 +59,89 @@ def update_bot(bot_name, status, pair, pnl):
 
 
 
-def create_paper_trade(pair, side, entry_price, confidence, timeframe):
+def create_paper_trade(
+    pair,
+    side,
+    entry_price,
+    confidence,
+    timeframe
+):
 
     try:
 
+        # =====================================
+        # CHECK EXISTING OPEN TRADE
+        # =====================================
+
+        check_query = """
+        SELECT id
+        FROM paper_trades
+        WHERE
+            pair = %s
+            AND timeframe = %s
+            AND status = 'OPEN'
+        LIMIT 1
+        """
+
+        cursor.execute(check_query, (
+            pair,
+            timeframe
+        ))
+
+        existing_trade = cursor.fetchone()
+
+        # =====================================
+        # SKIP DUPLICATE TRADE
+        # =====================================
+
+        if existing_trade:
+
+            print(
+                f"Trade already open: "
+                f"{pair} {timeframe}"
+            )
+
+            return
+
+        # =====================================
+        # CREATE NEW TRADE
+        # =====================================
+
         query = """
         INSERT INTO paper_trades
-        (pair, side, entry_price, quantity, leverage, timeframe, ai_confidence, trade_source, status, created_at)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+        (
+            pair,
+            side,
+            entry_price,
+            quantity,
+            leverage,
+            timeframe,
+            ai_confidence,
+            trade_source,
+            status,
+            created_at
+        )
+        VALUES
+        (
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            NOW()
+        )
         """
 
         cursor.execute(query, (
             pair,
             side,
             entry_price,
-            1,                 # quantity
-            1,                 # leverage
+            1,
+            1,
             timeframe,
             confidence,
             "AI",
@@ -83,11 +150,17 @@ def create_paper_trade(pair, side, entry_price, confidence, timeframe):
 
         conn.commit()
 
-        print(f" Trade created: {pair} {side}")
+        print(
+            f"Trade created: "
+            f"{pair} {side}"
+        )
 
     except Exception as e:
-        print("Trade creation error:", e)
 
+        print(
+            "Trade creation error:",
+            e
+        )
 def get_latest_signals():
 
     try:
