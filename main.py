@@ -108,9 +108,31 @@ def clean_old_data():
 
     except Exception as e:
         print("Cleanup error:", e)
+
 # ==============================
-#  BOT LOOP 
+# ASSISTANT BOT LOOP
 # ==============================
+
+def assistant_loop():
+
+    print("🤖 Assistant Bot Started")
+
+    while True:
+
+        try:
+
+            check_replies()
+
+        except Exception as e:
+
+            print("Assistant Bot Error:", e)
+
+        time.sleep(3)
+
+threading.Thread(
+    target=assistant_loop,
+    daemon=True
+).start()
 
 counter = 0
 
