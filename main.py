@@ -119,7 +119,6 @@ while True:
         print(" Running bot cycle...")
 
         run_bots()
-        check_replies()
         
         counter += 1
 
