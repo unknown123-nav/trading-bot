@@ -216,3 +216,53 @@ def get_pnl_report():
         print("PNL report error:", e)
 
         return None
+
+def get_open_trades():
+
+    try:
+
+        query = """
+        SELECT id, pair, side, entry_price
+        FROM paper_trades
+        WHERE status = 'OPEN'
+        """
+
+        cursor.execute(query)
+
+        return cursor.fetchall()
+
+    except Exception as e:
+
+        print("Open trade fetch error:", e)
+
+        return []
+
+def close_trade(
+    trade_id,
+    exit_price,
+    pnl
+):
+
+    try:
+
+        query = """
+        UPDATE paper_trades
+        SET
+            exit_price = %s,
+            pnl = %s,
+            status = 'CLOSED',
+            closed_at = NOW()
+        WHERE id = %s
+        """
+
+        cursor.execute(query, (
+            exit_price,
+            pnl,
+            trade_id
+        ))
+
+        conn.commit()
+
+    except Exception as e:
+
+        print("Close trade error:", e)
