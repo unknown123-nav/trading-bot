@@ -32,6 +32,7 @@ def send_telegram(message):
 
     try:
 
+        # Prevent Telegram spam limit
         time.sleep(1)
 
         response = requests.post(
@@ -50,6 +51,8 @@ def send_telegram(message):
             "Telegram error:",
             ex
         )
+
+
 # =========================================
 # TELEGRAM REPLY ENGINE
 # =========================================
@@ -113,7 +116,15 @@ def check_replies():
 
             text = message.get("text", "")
 
+            # Ignore empty messages
+            if not text:
+                continue
+
             chat_id = message["chat"]["id"]
+
+            # Ignore other chats/groups
+            if str(chat_id) != CHAT_ID:
+                continue
 
             lower = text.lower().strip()
 
@@ -131,7 +142,7 @@ def check_replies():
                     "🤖 AI Engine: ONLINE\n"
                     "📡 Signal Scanner: ACTIVE\n"
                     "⚡ Trading Engine: RUNNING\n"
-                    "☁ Cloud Worker: LIVE\n"
+                    "☁️ Cloud Worker: LIVE\n"
                     "📲 Telegram System: CONNECTED\n\n"
 
                     "✅ All systems operational."
@@ -167,7 +178,7 @@ def check_replies():
                     "🏓 KRYPTRA AI RESPONSE\n\n"
 
                     "⚡ Connection Stable\n"
-                    "☁ Cloud Worker Online\n"
+                    "☁️ Cloud Worker Online\n"
                     "📡 Response Time Normal"
                 )
 
@@ -315,16 +326,22 @@ def check_replies():
             }
 
             try:
+
                 time.sleep(1)
+
                 response = requests.post(
                     send_url,
                     json=payload
                 )
+
                 print(response.text)
+
             except Exception as e:
-                print("Telegram reply error:", e)
+
+                print(
+                    "Telegram reply error:",
+                    e
                 )
-            )
 
             print(
                 f"Replied to: {text}"
