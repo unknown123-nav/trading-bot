@@ -6,7 +6,6 @@ from config import SYMBOLS
 from db import create_paper_trade
 from db import get_open_trades
 from db import close_trade
-from ai_engine import predict_trade
 
 # ✅ SIGNAL BOT FUNCTION
 def send_signal(message):
@@ -66,32 +65,7 @@ def process_timeframe(symbol, timeframe, table_name):
     # AI PREDICTION
     # =====================================
 
-    ai_probability =
-        predict_trade(
-            symbol,
-            timeframe,
-            signal,
-            confidence,
-            delta,
-            percentile,
-            pnl
-        )
-
-    print(
-        f"🧠 AI Probability: {ai_probability}"
-    )
-
-    # =====================================
-    # AI FILTER
-    # =====================================
-
-    if ai_probability < 0.70:
-
-        print(
-            f"❌ AI rejected {symbol} {timeframe}"
-        )
-
-        return
+    
 
     # =====================================
     # SAVE SIGNAL
