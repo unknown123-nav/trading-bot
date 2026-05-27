@@ -7,353 +7,133 @@ from db import (
     get_pnl_report
 )
 
-BOT_TOKEN = "8864549600:AAH8S3USLHU6mOHSbcfxsMdrjYn47TXGCBY"
-
+BOT_TOKEN = "PUT_YOUR_TOKEN_HERE"
 CHAT_ID = "-5211298112"
 
 LAST_UPDATE_ID = None
 
 
 # =========================================
-# SEND TELEGRAM MESSAGE
+# ✅ SEND TELEGRAM MESSAGE
 # =========================================
-
-def send_telegram(message):
-
-    url = (
-        f"https://api.telegram.org/bot"
-        f"{BOT_TOKEN}/sendMessage"
-    )
+def send_telegram(chat_id, message):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
 
     payload = {
-        "chat_id": CHAT_ID,
+        "chat_id": chat_id,
         "text": message
     }
 
     try:
-
-        response = requests.post(
-            url,
-            json=payload
-        )
-
-        print(
-            "Telegram sent:",
-            response.text
-        )
-
+        response = requests.post(url, json=payload)
+        print("✅ Telegram sent:", response.text)
     except Exception as ex:
-
-        print(
-            "Telegram error:",
-            ex
-        )
+        print("Telegram error:", ex)
 
 
 # =========================================
-# TELEGRAM REPLY ENGINE
+# ✅ TELEGRAM REPLY ENGINE (FIXED ✅)
 # =========================================
-
 def check_replies():
 
     global LAST_UPDATE_ID
 
-    url = (
-        f"https://api.telegram.org/bot"
-        f"{BOT_TOKEN}/getUpdates"
-    )
-
     try:
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates"
 
-        response = requests.get(
-            url,
-            params={
-                "offset":
-                 LAST_UPDATE_ID + 1
-                 if LAST_UPDATE_ID
-                 else None,
-
-                "timeout": 10
-            }
-        )
-
+        response = requests.get(url, timeout=10)
         data = response.json()
 
-        if not data["ok"]:
+        if not data.get("ok"):
             return
 
-        updates = data["result"]
+        updates = data.get("result", [])
 
-        # =====================================
-        # IGNORE OLD MESSAGES
-        # =====================================
-
-        if LAST_UPDATE_ID is None and len(updates) > 0:
-
-            LAST_UPDATE_ID = updates[-1]["update_id"]
-
+        if not updates:
             return
 
+        # ✅ ONLY PROCESS LATEST MESSAGE (KEY FIX 🔥)
+        latest_update = updates[-1]
+        update_id = latest_update["update_id"]
+
+        # ✅ IGNORE OLD UPDATES
+        if LAST_UPDATE_ID is not None and update_id <= LAST_UPDATE_ID:
+            return
+
+        LAST_UPDATE_ID = update_id
+
+        message = latest_update.get("message", {})
+
+        if not message:
+            return
+
+        if message.get("from", {}).get("is_bot"):
+            return
+
+        text = message.get("text", "").strip().lower()
+        chat_id = message["chat"]["id"]
+
+        if not text:
+            return
+
+        print(f"📩 Received: {text}")
+
         # =====================================
-        # PROCESS NEW MESSAGES
+        # ✅ COMMAND HANDLING
         # =====================================
 
-        for update in updates:
-
-            update_id = update["update_id"]
-
-            if LAST_UPDATE_ID is not None:
-
-                if update_id <= LAST_UPDATE_ID:
-                    continue
-
-            LAST_UPDATE_ID = update_id
-
-            if "message" not in update:
-                continue
-
-            message = update["message"]
-
-            # =====================================
-            # IGNORE BOT MESSAGES
-            # =====================================
-
-            if message.get("from", {}).get("is_bot"):
-                continue
-
-            text = message.get("text", "")
-
-            # Ignore empty messages
-            if not text:
-                continue
-
-            chat_id = message["chat"]["id"]
-
-
-            lower = text.lower().strip()
-
-            reply = None
-
-            # =====================================
-            # STATUS
-            # =====================================
-
-            if lower == "status":
-
-                reply = (
-                    "🟢 KRYPTRA AI STATUS\n\n"
-
-                    "🤖 AI Engine: ONLINE\n"
-                    "📡 Signal Scanner: ACTIVE\n"
-                    "⚡ Trading Engine: RUNNING\n"
-                    "☁️ Cloud Worker: LIVE\n"
-                    "📲 Telegram System: CONNECTED\n\n"
-
-                    "✅ All systems operational."
-                )
-
-            # =====================================
-            # HELP
-            # =====================================
-
-            elif lower == "help":
-
-                reply = (
-                    "📚 KRYPTRA AI COMMAND CENTER\n\n"
-
-                    "📌 status → AI system status\n"
-                    "📌 signals → latest signals\n"
-                    "📌 ai → AI analytics\n"
-                    "📌 pnl → performance report\n"
-                    "📌 trades → active trades\n"
-                    "📌 ping → latency test\n"
-                    "📌 help → command list\n\n"
-
-                    "🤖 Autonomous AI trading system active."
-                )
-
-            # =====================================
-            # PING
-            # =====================================
-
-            elif lower == "ping":
-
-                reply = (
-                    "🏓 KRYPTRA AI RESPONSE\n\n"
-
-                    "⚡ Connection Stable\n"
-                    "☁️ Cloud Worker Online\n"
-                    "📡 Response Time Normal"
-                )
-
-            # =====================================
-            # SIGNALS
-            # =====================================
-
-            elif lower == "signals":
-
-                signals = get_latest_signals()
-
-                if len(signals) == 0:
-
-                    reply = (
-                        "⚠️ No live signals available."
-                    )
-
-                else:
-
-                    reply = (
-                        "🚨 LIVE AI SIGNALS\n\n"
-                    )
-
-                    for s in signals:
-
-                        reply += (
-                            f"{s[0]} → "
-                            f"{s[1]} "
-                            f"({round(float(s[2]), 2)}%)\n"
-                        )
-
-                    reply += (
-                        "\n⚡ Real-time market analysis active."
-                    )
-
-            # =====================================
-            # AI
-            # =====================================
-
-            elif lower == "ai":
-
-                reply = (
-                    "🧠 AI ANALYTICS ENGINE\n\n"
-
-                    "📊 Dataset Status: ACTIVE\n"
-                    "📈 Momentum Scanner: RUNNING\n"
-                    "⚡ Volatility Detection: ENABLED\n"
-                    "🎯 Confidence Engine: ONLINE\n\n"
-
-                    "🤖 Neural trading systems operational."
-                )
-
-            # =====================================
-            # PNL
-            # =====================================
-
-            elif lower == "pnl":
-
-                report = get_pnl_report()
-
-                if report is None:
-
-                    reply = (
-                        "⚠️ Unable to load performance report."
-                    )
-
-                else:
-
-                    reply = (
-                        "💰 PERFORMANCE REPORT\n\n"
-
-                        f"📈 Win Rate: "
-                        f"{report['win_rate']}%\n"
-
-                        f"📊 Active Trades: "
-                        f"{report['active_trades']}\n"
-
-                        f"⚡ Total Signals: "
-                        f"{report['signals']}\n"
-
-                        f"🟢 AI Accuracy: "
-                        f"{report['ai_accuracy']}%\n\n"
-
-                        "🚀 Real-time trading analytics active."
-                    )
-
-            # =====================================
-            # TRADES
-            # =====================================
-
-            elif lower == "trades":
-
-                trades = get_active_trades()
-
-                if len(trades) == 0:
-
-                    reply = (
-                        "⚠️ No active trades."
-                    )
-
-                else:
-
-                    reply = (
-                        "📂 ACTIVE TRADES\n\n"
-                    )
-
-                    for t in trades:
-
-                        reply += (
-                            f"{t[0]} → "
-                            f"{t[1]}\n"
-                        )
-
-                    reply += (
-                        "\n⚡ Trade monitoring active."
-                    )
-
-            # =====================================
-            # UNKNOWN COMMAND
-            # =====================================
-
+        if text == "status":
+            reply = "🟢 KRYPTRA AI STATUS: ONLINE ✅"
+
+        elif text == "help":
+            reply = (
+                "📚 Commands:\n\n"
+                "status\nsignals\ntrades\npnl\nping\nhelp"
+            )
+
+        elif text == "ping":
+            reply = "🏓 Pong! System is responsive ✅"
+
+        elif text == "signals":
+            signals = get_latest_signals()
+
+            if not signals:
+                reply = "⚠️ No signals available"
             else:
+                reply = "🚨 SIGNALS:\n\n"
+                for s in signals:
+                    reply += f"{s[0]} → {s[1]} ({round(float(s[2]), 2)}%)\n"
 
+        elif text == "trades":
+            trades = get_active_trades()
+
+            if not trades:
+                reply = "⚠️ No active trades"
+            else:
+                reply = "📂 ACTIVE TRADES:\n\n"
+                for t in trades:
+                    reply += f"{t[0]} → {t[1]}\n"
+
+        elif text == "pnl":
+            report = get_pnl_report()
+
+            if not report:
+                reply = "⚠️ No report available"
+            else:
                 reply = (
-                    "❌ Unknown Command\n\n"
-
-                    "Type:\n"
-                    "help\n\n"
-
-                    "to view available commands."
+                    f"💰 Win Rate: {report['win_rate']}%\n"
+                    f"📊 Active Trades: {report['active_trades']}\n"
+                    f"⚡ Signals: {report['signals']}\n"
+                    f"🟢 Accuracy: {report['ai_accuracy']}%"
                 )
 
-            # =====================================
-            # SEND REPLY
-            # =====================================
+        else:
+            reply = "❌ Unknown command — type 'help'"
 
-            send_url = (
-                f"https://api.telegram.org/bot"
-                f"{BOT_TOKEN}/sendMessage"
-            )
+        # ✅ SEND RESPONSE
+        send_telegram(chat_id, reply)
 
-            payload = {
-                "chat_id": chat_id,
-                "text": reply
-            }
+        print(f"✅ Replied to: {text}")
 
-            try:
-
-                time.sleep(1)
-
-                response = requests.post(
-                    send_url,
-                    json=payload
-                )
-
-                print(response.text)
-
-            except Exception as e:
-
-                print(
-                    "Telegram reply error:",
-                    e
-                )
-
-            print(
-                f"Replied to: {text}"
-            )
-
-    except Exception as ex:
-
-        print(
-            "Reply engine error:",
-            ex
-        )
+    except Exception as e:
+        print("🚨 Telegram error:", e)
