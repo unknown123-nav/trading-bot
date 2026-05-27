@@ -1,4 +1,8 @@
-mysql-connector-python
-pandas
-requests
 flask
+tensorflow
+numpy
+pandas
+scikit-learn
+joblib
+gunicorn
+h5py
