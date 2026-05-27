@@ -48,8 +48,13 @@ def process_timeframe(symbol, timeframe, table_name):
 
     global signal_count
 
-    # ✅ LIMIT TOTAL SIGNALS PER CYCLE
+    # ✅ LIMIT SIGNALS
     if signal_count >= 5:
+        return
+
+    # ✅ LIMIT OPEN TRADES (CRITICAL FIX ✅)
+    open_trades = get_open_trades()
+    if len(open_trades) >= 5:
         return
 
     df = get_data(symbol, timeframe, 40)
@@ -64,16 +69,10 @@ def process_timeframe(symbol, timeframe, table_name):
 
     confidence = calculate_confidence(latest, avg)
 
-    # =====================================
-    # AI FEATURES
-    # =====================================
     delta = abs(latest - avg)
     percentile = confidence
     pnl = 0
 
-    # =====================================
-    # AI PREDICTION
-    # =====================================
     try:
         ai_probability = predict_trade(
             symbol,
@@ -84,20 +83,21 @@ def process_timeframe(symbol, timeframe, table_name):
             percentile,
             pnl
         )
-    except Exception:
+    except:
         ai_probability = 0
 
-    # =====================================
-    # SAVE SIGNAL
-    # =====================================
     save_signal(table_name, symbol, signal, confidence, latest)
 
-    # =====================================
-    # STRONG SIGNAL FILTER
-    # =====================================
-    if confidence >= 65 and ai_probability > 0.9:
+    # ✅ STRONG FILTER
+    if confidence >= 55 and ai_probability > 0.9:
 
-        create_paper_trade(symbol, signal, latest, confidence, timeframe)
+        create_paper_trade(
+            symbol,
+            signal,
+            latest,
+            confidence,
+            timeframe
+        )
 
         message = f"""
 🚨 AI SIGNAL
@@ -117,7 +117,6 @@ Time: {time.strftime('%Y-%m-%d %H:%M:%S')}
 
         send_signal(message)
 
-        # ✅ INCREASE COUNTER
         signal_count += 1
 
 
@@ -163,7 +162,6 @@ PNL: {pnl}%
 
 Time: {time.strftime('%H:%M:%S')}
 """
-
             send_signal(message)
 
 
