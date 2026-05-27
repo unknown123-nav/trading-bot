@@ -105,6 +105,7 @@ def process_timeframe(
     # MARKET STATE ENGINE
     # =====================================
 
+    
     if confidence < 55:
 
         market_state = (
@@ -193,6 +194,7 @@ def process_timeframe(
     # CREATE PAPER TRADE
     # =====================================
 
+    print(f"Confidence Check: {confidence}")
     if confidence >= 55:
 
         create_paper_trade(
