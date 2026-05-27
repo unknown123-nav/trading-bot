@@ -6,10 +6,9 @@ from tensorflow.keras.models import load_model
 # LOAD MODEL
 # =========================================
 
-model =
-    load_model(
-        "trading_ai_model.h5"
-    )
+model = load_model(
+    "trading_ai_model.h5"
+)
 
 print("🧠 AI MODEL LOADED")
 
@@ -48,7 +47,7 @@ def predict_trade(
             "5m": 2,
             "15m": 3,
             "30m": 4,
-            "1H": 5
+            "1h": 5
         }
 
         direction_map = {
@@ -60,46 +59,40 @@ def predict_trade(
         # CONVERT
         # =====================================
 
-        pair_encoded =
-            pair_map.get(pair, 0)
+        pair_encoded = pair_map.get(pair, 0)
 
-        timeframe_encoded =
-            timeframe_map.get(timeframe, 0)
+        timeframe_encoded = timeframe_map.get(timeframe, 0)
 
-        direction_encoded =
-            direction_map.get(direction, 0)
+        direction_encoded = direction_map.get(direction, 0)
 
         # =====================================
         # CREATE FEATURES
         # =====================================
 
-        features =
-            np.array([
-                [
-                    pair_encoded,
-                    timeframe_encoded,
-                    direction_encoded,
-                    confidence,
-                    delta,
-                    percentile,
-                    pnl
-                ]
-            ])
+        features = np.array([
+            [
+                pair_encoded,
+                timeframe_encoded,
+                direction_encoded,
+                confidence,
+                delta,
+                percentile,
+                pnl
+            ]
+        ])
 
         # =====================================
         # PREDICT
         # =====================================
 
-        prediction =
-            model.predict(
-                features,
-                verbose=0
-            )
+        prediction = model.predict(
+            features,
+            verbose=0
+        )
 
-        probability =
-            float(
-                prediction[0][0]
-            )
+        probability = float(
+            prediction[0][0]
+        )
 
         return probability
 
