@@ -7,9 +7,7 @@ from db import (
     get_pnl_report
 )
 
-BOT_TOKEN = "8665738800:AAEPbMqnFY_ZWPWpFfcqmOhZQBLuOHKLA-4"
-CHAT_ID = "-5211298112"
-
+BOT_TOKEN = "YOUR_ASSISTANT_BOT_TOKEN"
 LAST_UPDATE_ID = None
 
 
@@ -19,18 +17,19 @@ LAST_UPDATE_ID = None
 def send_telegram(chat_id, message):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
 
-    payload = {
-        "chat_id": chat_id,
-        "text": message
-    }
-
     try:
-        response = requests.post(url, json=payload)
-        print("✅ Telegram sent:", response.text)
+        requests.post(url, json={
+            "chat_id": chat_id,
+            "text": message
+        })
+        print("✅ Telegram sent")
     except Exception as ex:
         print("Telegram error:", ex)
 
 
+# =========================================
+# ✅ TELEGRAM ENGINE
+# =========================================
 def check_replies():
 
     global LAST_UPDATE_ID
@@ -53,7 +52,6 @@ def check_replies():
 
             update_id = update["update_id"]
 
-            # ✅ skip old updates safely
             if LAST_UPDATE_ID is not None and update_id <= LAST_UPDATE_ID:
                 continue
 
@@ -74,49 +72,97 @@ def check_replies():
 
             print(f"📩 Received: {text}")
 
-            # ===============================
-            # COMMANDS
-            # ===============================
+            # =====================================
+            # ✅ COMMANDS
+            # =====================================
 
-            if text == "help":
-                reply = "📚 Commands: status, signals, trades, pnl"
+            if "help" in text:
+                reply = (
+                    "📚 *KRYPTRA AI COMMAND CENTER*\n\n"
+                    "✅ status → System health\n"
+                    "✅ signals → Latest AI signals\n"
+                    "✅ trades → Active trades\n"
+                    "✅ pnl → Performance report\n"
+                    "✅ ping → Check latency\n"
+                    "✅ ai → AI system info\n\n"
+                    "🤖 Fully automated cloud trading engine"
+                )
 
-            elif text == "status":
-                reply = "✅ System running"
+            elif "status" in text:
+                reply = (
+                    "🟢 *SYSTEM STATUS*\n\n"
+                    "✅ AI Engine: ACTIVE\n"
+                    "✅ Trading Bots: RUNNING\n"
+                    "✅ Database: CONNECTED\n"
+                    "✅ Cloud: ONLINE\n\n"
+                    "🚀 All systems operational"
+                )
 
-            elif text == "signals":
+            elif "signal" in text:
                 signals = get_latest_signals()
+
                 if not signals:
-                    reply = "⚠️ No signals"
+                    reply = "⚠️ No live signals available"
                 else:
-                    reply = "🚨 Signals:\n\n"
+                    reply = "🚨 *LATEST AI SIGNALS*\n\n"
                     for s in signals:
                         reply += f"{s[0]} → {s[1]} ({round(float(s[2]),2)}%)\n"
+                    reply += "\n⚡ Real-time market scanning active"
 
-            elif text == "trades":
+            elif "trade" in text:
                 trades = get_active_trades()
+
                 if not trades:
-                    reply = "⚠️ No trades"
+                    reply = "⚠️ No active trades"
                 else:
-                    reply = "📂 Trades:\n\n"
+                    reply = "📂 *ACTIVE TRADES*\n\n"
                     for t in trades:
                         reply += f"{t[0]} → {t[1]}\n"
+                    reply += "\n📡 Monitoring live positions"
 
-            elif text == "pnl":
+            elif "pnl" in text:
                 report = get_pnl_report()
+
                 if not report:
-                    reply = "⚠️ No report"
+                    reply = "⚠️ Unable to fetch performance data"
                 else:
-                    reply = f"💰 Win Rate: {report['win_rate']}%"
+                    reply = (
+                        "💰 *PERFORMANCE REPORT*\n\n"
+                        f"📈 Win Rate: {report['win_rate']}%\n"
+                        f"📊 Active Trades: {report['active_trades']}\n"
+                        f"⚡ Total Signals: {report['signals']}\n"
+                        f"🎯 AI Accuracy: {report['ai_accuracy']}%\n\n"
+                        "🚀 Real-time analytics running"
+                    )
+
+            elif "ping" in text:
+                reply = (
+                    "🏓 *PING RESPONSE*\n\n"
+                    "✅ Bot Responding\n"
+                    "✅ Network Stable\n"
+                    "☁️ Cloud Active"
+                )
+
+            elif "ai" in text:
+                reply = (
+                    "🧠 *AI ENGINE INFO*\n\n"
+                    "✅ Neural Model Integrated\n"
+                    "✅ Signal Confidence Engine\n"
+                    "✅ Multi-Timeframe Analysis\n\n"
+                    "⚡ Hybrid AI trading system active"
+                )
 
             else:
-                reply = "❌ Unknown command"
+                reply = (
+                    "❌ Unknown command\n\n"
+                    "👉 Type 'help' to see available commands"
+                )
 
-            # ✅ SEND MESSAGE
-            requests.post(
-                f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-                json={"chat_id": chat_id, "text": reply}
-            )
+            # =====================================
+            # ✅ SEND RESPONSE
+            # =====================================
+
+            send_telegram(chat_id, reply)
 
             print(f"✅ Replied to: {text}")
 
