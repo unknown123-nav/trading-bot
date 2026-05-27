@@ -8,9 +8,15 @@ from db import get_open_trades
 from db import close_trade
 from ai_engine import predict_trade
 
-# ✅ SIGNAL BOT FUNCTION
+# ✅ GLOBAL LIMIT
+signal_count = 0
+
+
+# =========================================
+# ✅ SIGNAL BOT FUNCTION (RATE LIMITED)
+# =========================================
 def send_signal(message):
-    token = "8864549600:AAH8S3USLHU6mOHSbcfxsMdrjYn47TXGCBY"
+    token = "8864549600:AAH8S3USLHU6mOHSbcfxsMdrjYn47TXGCBY"   
     chat_id = "-5211298112"
 
     try:
@@ -18,20 +24,33 @@ def send_signal(message):
             f"https://api.telegram.org/bot{token}/sendMessage",
             json={"chat_id": chat_id, "text": message}
         )
-        time.sleep(1)
+
+        time.sleep(1)  # ✅ RATE LIMIT (VERY IMPORTANT)
+
         print("✅ Signal sent")
+
     except Exception as e:
         print("Signal error:", e)
 
 
-# ✅ CONFIDENCE
+# =========================================
+# ✅ CONFIDENCE CALCULATION
+# =========================================
 def calculate_confidence(current, average):
     pct = abs((current - average) / average) * 100
     return max(50, min(round(50 + (pct * 10), 2), 99))
 
 
+# =========================================
 # ✅ PROCESS SIGNAL
+# =========================================
 def process_timeframe(symbol, timeframe, table_name):
+
+    global signal_count
+
+    # ✅ LIMIT TOTAL SIGNALS PER CYCLE
+    if signal_count >= 5:
+        return
 
     df = get_data(symbol, timeframe, 40)
 
@@ -39,30 +58,22 @@ def process_timeframe(symbol, timeframe, table_name):
         return
 
     latest = float(df.iloc[0]['close'])
-
     avg = float(df['close'].mean())
 
-    signal ="LONG" if latest > avg else "SHORT"
+    signal = "LONG" if latest > avg else "SHORT"
 
-    confidence =calculate_confidence(
-            latest,
-            avg
-        )
+    confidence = calculate_confidence(latest, avg)
 
     # =====================================
     # AI FEATURES
     # =====================================
-
-    delta =abs(latest - avg)
-
-    percentile =confidence
-
+    delta = abs(latest - avg)
+    percentile = confidence
     pnl = 0
 
     # =====================================
     # AI PREDICTION
     # =====================================
-
     try:
         ai_probability = predict_trade(
             symbol,
@@ -73,60 +84,46 @@ def process_timeframe(symbol, timeframe, table_name):
             percentile,
             pnl
         )
-    except Exception as e:
-        print("AI ENGINE FAILED:", e)
-        
+    except Exception:
         ai_probability = 0
-    
 
     # =====================================
     # SAVE SIGNAL
     # =====================================
-
-    save_signal(
-        table_name,
-        symbol,
-        signal,
-        confidence,
-        latest
-    )
+    save_signal(table_name, symbol, signal, confidence, latest)
 
     # =====================================
-    # CREATE TRADE
+    # STRONG SIGNAL FILTER
     # =====================================
-
     if confidence >= 60 and ai_probability > 0.6:
 
-        create_paper_trade(
-            symbol,
-            signal,
-            latest,
-            confidence,
-            timeframe
-        )
-
+        create_paper_trade(symbol, signal, latest, confidence, timeframe)
 
         message = f"""
 🚨 AI SIGNAL
 
-{symbol} {timeframe}
+Pair: {symbol}
+Timeframe: {timeframe}
 
-{signal}
+Direction: {signal}
 
 Confidence: {confidence}%
-
-AI Probability:
-{round(ai_probability * 100, 2)}%
+AI Probability: {round(ai_probability * 100, 2)}%
 
 Entry: {latest}
 
-Time:
-{time.strftime('%Y-%m-%d %H:%M:%S')}
+Time: {time.strftime('%Y-%m-%d %H:%M:%S')}
 """
 
         send_signal(message)
 
-# ✅ MONITOR TRADES (IMPORTANT — THIS WAS REQUIRED)
+        # ✅ INCREASE COUNTER
+        signal_count += 1
+
+
+# =========================================
+# ✅ MONITOR TRADES
+# =========================================
 def monitor_trades():
 
     trades = get_open_trades()
@@ -144,7 +141,12 @@ def monitor_trades():
 
         current = float(df.iloc[0]['close'])
 
-        pnl = ((current - entry) / entry * 100) if side == "LONG" else ((entry - current) / entry * 100)
+        pnl = (
+            (current - entry) / entry * 100
+            if side == "LONG"
+            else (entry - current) / entry * 100
+        )
+
         pnl = round(pnl, 2)
 
         if pnl >= 2 or pnl <= -1:
@@ -154,8 +156,9 @@ def monitor_trades():
             message = f"""
 ✅ TRADE CLOSED
 
-{pair}
-{side}
+Pair: {pair}
+Direction: {side}
+
 PNL: {pnl}%
 
 Time: {time.strftime('%H:%M:%S')}
@@ -164,8 +167,13 @@ Time: {time.strftime('%H:%M:%S')}
             send_signal(message)
 
 
-# ✅ MAIN BOT FUNCTION (THIS FIXES YOUR ERROR)
+# =========================================
+# ✅ MAIN BOT ENGINE
+# =========================================
 def run_bots():
+
+    global signal_count
+    signal_count = 0  # ✅ RESET EVERY CYCLE
 
     for symbol in SYMBOLS:
 
@@ -179,4 +187,5 @@ def run_bots():
         process_timeframe(symbol, "1h", "signals_1h")
 
         update_bot(symbol, "RUNNING", symbol, 0)
+
         time.sleep(2)
