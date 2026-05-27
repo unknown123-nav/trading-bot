@@ -6,7 +6,7 @@ from config import SYMBOLS
 from db import create_paper_trade
 from db import get_open_trades
 from db import close_trade
-
+from ai_engine import predict_trade
 
 # ✅ SIGNAL BOT FUNCTION
 def send_signal(message):
@@ -31,34 +31,113 @@ def calculate_confidence(current, average):
 
 # ✅ PROCESS SIGNAL
 def process_timeframe(symbol, timeframe, table_name):
+
     df = get_data(symbol, timeframe, 40)
 
     if df.empty:
         return
 
-    latest = df.iloc[0]['close']
-    avg = df['close'].mean()
+    latest = float(df.iloc[0]['close'])
 
-    signal = "LONG" if latest > avg else "SHORT"
-    confidence = calculate_confidence(latest, avg)
+    avg = float(df['close'].mean())
 
-    save_signal(table_name, symbol, signal, confidence, latest)
+    signal =
+        "LONG" if latest > avg else "SHORT"
+
+    confidence =
+        calculate_confidence(
+            latest,
+            avg
+        )
+
+    # =====================================
+    # AI FEATURES
+    # =====================================
+
+    delta =
+        abs(latest - avg)
+
+    percentile =
+        confidence
+
+    pnl = 0
+
+    # =====================================
+    # AI PREDICTION
+    # =====================================
+
+    ai_probability =
+        predict_trade(
+            symbol,
+            timeframe,
+            signal,
+            confidence,
+            delta,
+            percentile,
+            pnl
+        )
+
+    print(
+        f"🧠 AI Probability: {ai_probability}"
+    )
+
+    # =====================================
+    # AI FILTER
+    # =====================================
+
+    if ai_probability < 0.70:
+
+        print(
+            f"❌ AI rejected {symbol} {timeframe}"
+        )
+
+        return
+
+    # =====================================
+    # SAVE SIGNAL
+    # =====================================
+
+    save_signal(
+        table_name,
+        symbol,
+        signal,
+        confidence,
+        latest
+    )
+
+    # =====================================
+    # CREATE TRADE
+    # =====================================
 
     if confidence >= 55:
 
-        create_paper_trade(symbol, signal, latest, confidence, timeframe)
+        create_paper_trade(
+            symbol,
+            signal,
+            latest,
+            confidence,
+            timeframe
+        )
 
         message = f"""
-🚨 SIGNAL
+🚨 AI SIGNAL
 
 {symbol} {timeframe}
-{signal} ({confidence}%)
+
+{signal}
+
+Confidence: {confidence}%
+
+AI Probability:
+{round(ai_probability * 100, 2)}%
 
 Entry: {latest}
-Time: {time.strftime('%Y-%m-%d %H:%M:%S')}
-"""
-        send_signal(message)
 
+Time:
+{time.strftime('%Y-%m-%d %H:%M:%S')}
+"""
+
+        send_signal(message)
 
 # ✅ MONITOR TRADES (IMPORTANT — THIS WAS REQUIRED)
 def monitor_trades():
