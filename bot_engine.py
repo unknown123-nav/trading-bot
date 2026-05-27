@@ -11,10 +11,6 @@ from ai_engine import predict_trade
 # ✅ GLOBAL LIMIT
 signal_count = 0
 
-
-# =========================================
-# ✅ SIGNAL BOT FUNCTION (RATE LIMITED)
-# =========================================
 def send_signal(message):
     token = "8864549600:AAH8S3USLHU6mOHSbcfxsMdrjYn47TXGCBY"   
     chat_id = "-5211298112"
@@ -89,7 +85,7 @@ def process_timeframe(symbol, timeframe, table_name):
     save_signal(table_name, symbol, signal, confidence, latest)
 
     # ✅ STRONG FILTER
-    if confidence >= 55 and ai_probability > 0.9:
+    if confidence >= 55 and ai_probability > 0.7:
 
         create_paper_trade(
             symbol,
