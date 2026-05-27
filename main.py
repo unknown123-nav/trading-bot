@@ -117,14 +117,15 @@ threading.Thread(target=keep_alive, daemon=True).start()
 def assistant_loop():
     print("🤖 Assistant Bot Started")
 
+    time.sleep(2)  
+
     while True:
         try:
             check_replies()
         except Exception as e:
             print("Assistant Error:", e)
 
-        time.sleep(3)
-
+        time.sleep(5)
 
 # =========================================
 # ✅ TRADING LOOP
@@ -139,12 +140,16 @@ def trading_loop():
         try:
             print("🔁 Running trading cycle...")
 
+            # ✅ ONLY RUN SIGNALS HERE
             run_bots()
-            monitor_trades()
 
             counter += 1
 
-            # ✅ Cleanup every ~1 hour
+            # ✅ Run monitor LESS frequently
+            if counter % 3 == 0:
+                monitor_trades()
+
+            # ✅ Cleanup every hour
             if counter % 60 == 0:
                 clean_old_data()
 
@@ -152,6 +157,7 @@ def trading_loop():
             print("Trading Loop Error:", e)
 
         time.sleep(60)
+
 
 
 # =========================================
