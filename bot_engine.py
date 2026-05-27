@@ -6,6 +6,7 @@ from config import SYMBOLS
 from db import create_paper_trade
 from db import get_open_trades
 from db import close_trade
+from ai_engine import predict_trade
 
 # ✅ SIGNAL BOT FUNCTION
 def send_signal(message):
@@ -40,11 +41,9 @@ def process_timeframe(symbol, timeframe, table_name):
 
     avg = float(df['close'].mean())
 
-    signal =
-        "LONG" if latest > avg else "SHORT"
+    signal ="LONG" if latest > avg else "SHORT"
 
-    confidence =
-        calculate_confidence(
+    confidence =calculate_confidence(
             latest,
             avg
         )
@@ -53,11 +52,9 @@ def process_timeframe(symbol, timeframe, table_name):
     # AI FEATURES
     # =====================================
 
-    delta =
-        abs(latest - avg)
+    delta =abs(latest - avg)
 
-    percentile =
-        confidence
+    percentile =confidence
 
     pnl = 0
 
@@ -65,6 +62,15 @@ def process_timeframe(symbol, timeframe, table_name):
     # AI PREDICTION
     # =====================================
 
+    ai_probability = predict_trade(
+    symbol,
+    timeframe,
+    signal,
+    confidence,
+    delta,
+    percentile,
+    pnl
+)
     
 
     # =====================================
@@ -92,6 +98,7 @@ def process_timeframe(symbol, timeframe, table_name):
             confidence,
             timeframe
         )
+
 
         message = f"""
 🚨 AI SIGNAL
