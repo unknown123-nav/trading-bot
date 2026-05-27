@@ -1,267 +1,139 @@
 import time
+import requests
 from market import get_data
 from db import update_bot, save_signal
 from config import SYMBOLS
 from db import create_paper_trade
-from telegram import send_telegram
 from db import get_open_trades
 from db import close_trade
 
 
 # =========================================
+#  SIGNAL BOT (SEPARATE BOT)
+# =========================================
+def send_signal(message):
+    token = "8864549600:AAH8S3USLHU6mOHSbcfxsMdrjYn47TXGCBY"   
+    chat_id = "-5211298112"
+
+    try:
+        requests.post(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            json={
+                "chat_id": chat_id,
+                "text": message
+            }
+        )
+        print("✅ Signal sent")
+    except Exception as e:
+        print("Signal bot error:", e)
+
+
+# =========================================
 # PNL CALCULATION
 # =========================================
-
 def calculate_pnl(df):
-
     if len(df) < 2:
         return 0
 
     return float(
-        df.iloc[0]['close']
-        - df.iloc[-1]['close']
+        df.iloc[0]['close'] -
+        df.iloc[-1]['close']
     )
 
 
 # =========================================
 # AI CONFIDENCE
 # =========================================
-
 def calculate_confidence(current, average):
 
     pct_move = abs(
         (current - average) / average
     ) * 100
 
-    confidence = max(
+    return max(
         50,
-        min(
-            round(
-                50 + (pct_move * 10),
-                2
-            ),
-            99
-        )
+        min(round(50 + (pct_move * 10), 2), 99)
     )
 
-    return confidence
 
 # =========================================
 # GENERIC SIGNAL ENGINE
 # =========================================
+def process_timeframe(symbol, timeframe, limit, table_name):
 
-def process_timeframe(
-    symbol,
-    timeframe,
-    limit,
-    table_name
-):
-
-    df = get_data(
-        symbol,
-        timeframe,
-        limit
-    )
+    df = get_data(symbol, timeframe, limit)
 
     if df.empty:
         return
 
     latest = df.iloc[0]['close']
-
     average = df['close'].mean()
 
-    difference = latest - average
+    confidence = calculate_confidence(latest, average)
 
-    confidence = calculate_confidence(
-        latest,
-        average
-    )
+    signal = "LONG" if latest > average else "SHORT"
 
-    signal = (
-        "LONG"
-        if difference > 0
-        else "SHORT"
-    )
+    print(f"{symbol} | {timeframe} | {signal} | Confidence: {confidence}")
 
-    print(
-        f"{symbol} | {timeframe} | "
-        f"{signal} | "
-        f"Confidence: {confidence}"
-    )
+    save_signal(table_name, symbol, signal, confidence, latest)
 
     # =====================================
-    # SAVE SIGNAL
+    # MARKET STATE
     # =====================================
-
-    save_signal(
-        table_name,
-        symbol,
-        signal,
-        confidence,
-        latest
-    )
-
-    # =====================================
-    # MARKET STATE ENGINE
-    # =====================================
-
-    
     if confidence < 55:
-
-        market_state = (
-            "LOW VOLATILITY"
-        )
-
-        ai_analysis = (
-            "Market showing weak continuation structure "
-            "with limited momentum expansion."
-        )
-
+        market_state = "LOW VOLATILITY"
+        ai_analysis = "Weak momentum"
         risk_reward = "1 : 1"
-
     elif confidence < 70:
-
-        market_state = (
-            "MOMENTUM BUILDING"
-        )
-
-        ai_analysis = (
-            "Price action indicates developing momentum "
-            "with moderate continuation probability."
-        )
-
+        market_state = "BUILDING MOMENTUM"
+        ai_analysis = "Moderate build-up"
         risk_reward = "1 : 1.5"
-
     elif confidence < 85:
-
-        market_state = (
-            "HIGH VOLATILITY"
-        )
-
-        ai_analysis = (
-            "Strong directional movement detected "
-            "with elevated continuation probability."
-        )
-
+        market_state = "HIGH VOLATILITY"
+        ai_analysis = "Strong movement"
         risk_reward = "1 : 2"
-
     else:
-
-        market_state = (
-            "BREAKOUT CONDITIONS"
-        )
-
-        ai_analysis = (
-            "Extreme volatility expansion detected "
-            "with aggressive breakout characteristics."
-        )
-
+        market_state = "BREAKOUT"
+        ai_analysis = "Aggressive momentum"
         risk_reward = "1 : 3"
-
-    # =====================================
-    # LIQUIDITY ENGINE
-    # =====================================
-
-    liquidity = "NORMAL"
-
-    if "BTC" in symbol:
-        liquidity = "VERY HIGH"
-
-    elif "ETH" in symbol:
-        liquidity = "HIGH"
-
-    elif "SOL" in symbol:
-        liquidity = "HIGH"
-
-    elif "DOGE" in symbol:
-        liquidity = "MEDIUM"
 
     # =====================================
     # TP / SL
     # =====================================
-
-    take_profit = round(
-        latest * 1.02,
-        4
-    )
-
-    stop_loss = round(
-        latest * 0.985,
-        4
-    )
-
-    # =====================================
-    # CREATE PAPER TRADE
-    # =====================================
+    take_profit = round(latest * 1.02, 4)
+    stop_loss = round(latest * 0.985, 4)
 
     print(f"Confidence Check: {confidence}")
+
     if confidence >= 55:
 
-        create_paper_trade(
-            symbol,
-            signal,
-            latest,
-            confidence,
-            timeframe
-        )
+        create_paper_trade(symbol, signal, latest, confidence, timeframe)
 
-        # =====================================
-        # TELEGRAM SIGNAL MESSAGE
-        # =====================================
-
+        # ✅ SIGNAL MESSAGE (USES SIGNAL BOT)
         message = f"""
-🚨 KRYPTRA AI SIGNAL
+🚨 KRYPTRA SIGNAL
 
-📈 Pair:
-{symbol}
+{symbol} | {timeframe}
 
-⏱️ Timeframe:
-{timeframe}
+Direction: {signal}
+Confidence: {confidence}%
 
-📊 Direction:
-{signal}
+Entry: {latest}
+TP: {take_profit}
+SL: {stop_loss}
 
-🤖 Neural Confidence:
-{confidence}%
+Market: {market_state}
+RR: {risk_reward}
 
-💰 Entry Price:
-{latest}
-
-🎯 Take Profit:
-{take_profit}
-
-🛑 Stop Loss:
-{stop_loss}
-
-⚖️ Risk / Reward:
-{risk_reward}
-
-📡 Market State:
-{market_state}
-
-📊 Liquidity:
-{liquidity}
-
-🧠 AI Analysis:
-{ai_analysis}
-
-📈 Strategy Engine:
-Multi-Timeframe Momentum Scanner
-
-🕒 Signal Time:
-{time.strftime('%Y-%m-%d %H:%M:%S UTC')}
-
-⚡ Generated by KRYPTRA Neural Engine
+Time: {time.strftime('%Y-%m-%d %H:%M:%S UTC')}
 """
 
-        send_telegram(message)
-
+        send_signal(message)
 
 
 # =========================================
 # TRADE MONITOR ENGINE
 # =========================================
-
 def monitor_trades():
 
     trades = get_open_trades()
@@ -269,193 +141,42 @@ def monitor_trades():
     for trade in trades:
 
         trade_id = trade[0]
-
         pair = trade[1]
-
         side = trade[2]
-
         entry = float(trade[3])
 
-        # =====================================
-        # GET LIVE PRICE
-        # =====================================
-
-        df = get_data(
-            pair,
-            "1m",
-            1
-        )
+        df = get_data(pair, "1m", 1)
 
         if df.empty:
             continue
 
-        current_price = float(
-            df.iloc[0]['close']
+        current_price = float(df.iloc[0]['close'])
+
+        pnl = (
+            (current_price - entry) / entry * 100
+            if side == "LONG"
+            else (entry - current_price) / entry * 100
         )
-
-        # =====================================
-        # CALCULATE PNL
-        # =====================================
-
-        if side == "LONG":
-
-            pnl = (
-                (current_price - entry)
-                / entry
-            ) * 100
-
-        else:
-
-            pnl = (
-                (entry - current_price)
-                / entry
-            ) * 100
 
         pnl = round(pnl, 2)
 
-        # =====================================
-        # AUTO CLOSE CONDITIONS
-        # =====================================
-
         if pnl >= 2 or pnl <= -1:
 
-            close_trade(
-                trade_id,
-                current_price,
-                pnl
-            )
+            close_trade(trade_id, current_price, pnl)
 
-            result = (
-                "TAKE PROFIT HIT 🎯"
-                if pnl > 0
-                else "STOP LOSS HIT 🛑"
-            )
+            result = "TAKE PROFIT ✅" if pnl > 0 else "STOP LOSS ❌"
 
             message = f"""
 ✅ TRADE CLOSED — {pair}
 
-📈 Direction:
 {side}
+Entry: {entry}
+Exit: {current_price}
+PNL: {pnl}%
 
-💰 Entry:
-{entry}
-
-🎯 Exit:
-{current_price}
-
-📊 Final PNL:
-{pnl}%
-
-📌 Result:
 {result}
-
-🕒 Closed:
 {time.strftime('%Y-%m-%d %H:%M:%S UTC')}
 """
 
-            send_telegram(message)
+            send_signal(message)
 
-            print(
-                f"Trade Closed: {pair} | {pnl}%"
-            )
-# =========================================
-# MAIN BOT ENGINE
-# =========================================
-
-
-
-def run_bots():
-
-    for symbol in SYMBOLS:
-
-        bot_name = symbol.replace(
-            "-USDT",
-            " BOT"
-        )
-
-        print(f"\nRunning {bot_name}")
-
-        # =====================================
-        # 1M
-        # =====================================
-
-        process_timeframe(
-            symbol,
-            "1m",
-            60,
-            "signals_1m"
-        )
-
-        # =====================================
-        # 3M
-        # =====================================
-
-        process_timeframe(
-            symbol,
-            "3m",
-            40,
-            "signals_3m"
-        )
-
-        # =====================================
-        # 5M
-        # =====================================
-
-        process_timeframe(
-            symbol,
-            "5m",
-            40,
-            "signals_5m"
-        )
-
-        # =====================================
-        # 15M
-        # =====================================
-
-        process_timeframe(
-            symbol,
-            "15m",
-            40,
-            "signals_15m"
-        )
-
-        # =====================================
-        # 30M
-        # =====================================
-
-        process_timeframe(
-            symbol,
-            "30m",
-            40,
-            "signals_30m"
-        )
-
-        # =====================================
-        # 1H
-        # =====================================
-
-        process_timeframe(
-            symbol,
-            "1H",
-            40,
-            "signals_1h"
-        )
-
-        # =====================================
-        # BOT STATUS
-        # =====================================
-
-        df_status = get_data(
-            symbol,
-            '1m',
-            20
-        )
-
-        pnl = calculate_pnl(df_status)
-
-        update_bot(
-            bot_name,
-            "RUNNING",
-            symbol,
-            pnl
-        )
