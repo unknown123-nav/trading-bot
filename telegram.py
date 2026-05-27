@@ -7,7 +7,7 @@ from db import (
     get_pnl_report
 )
 
-BOT_TOKEN = "YOUR_ASSISTANT_BOT_TOKEN"
+BOT_TOKEN = "8665738800:AAEPbMqnFY_ZWPWpFfcqmOhZQBLuOHKLA-4"
 LAST_UPDATE_ID = None
 
 
