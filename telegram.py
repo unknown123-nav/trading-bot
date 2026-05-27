@@ -32,9 +32,6 @@ def send_telegram(message):
 
     try:
 
-        # Prevent Telegram spam limit
-        time.sleep(1)
-
         response = requests.post(
             url,
             json=payload
@@ -68,7 +65,17 @@ def check_replies():
 
     try:
 
-        response = requests.get(url)
+        response = requests.get(
+            url,
+            params={
+                "offset":
+                 LAST_UPDATE_ID + 1
+                 if LAST_UPDATE_ID
+                 else None,
+
+                "timeout": 10
+            }
+        )
 
         data = response.json()
 
@@ -122,9 +129,6 @@ def check_replies():
 
             chat_id = message["chat"]["id"]
 
-            # Ignore other chats/groups
-            if str(chat_id) != CHAT_ID:
-                continue
 
             lower = text.lower().strip()
 
