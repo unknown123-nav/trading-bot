@@ -7,7 +7,7 @@ from db import (
     get_pnl_report
 )
 
-BOT_TOKEN = "PUT_YOUR_TOKEN_HERE"
+BOT_TOKEN = "8665738800:AAEPbMqnFY_ZWPWpFfcqmOhZQBLuOHKLA-4"
 CHAT_ID = "-5211298112"
 
 LAST_UPDATE_ID = None
@@ -31,9 +31,6 @@ def send_telegram(chat_id, message):
         print("Telegram error:", ex)
 
 
-# =========================================
-# ✅ TELEGRAM REPLY ENGINE (FIXED ✅)
-# =========================================
 def check_replies():
 
     global LAST_UPDATE_ID
@@ -52,88 +49,76 @@ def check_replies():
         if not updates:
             return
 
-        # ✅ ONLY PROCESS LATEST MESSAGE (KEY FIX 🔥)
-        latest_update = updates[-1]
-        update_id = latest_update["update_id"]
+        for update in updates:
 
-        # ✅ IGNORE OLD UPDATES
-        if LAST_UPDATE_ID is not None and update_id <= LAST_UPDATE_ID:
-            return
+            update_id = update["update_id"]
 
-        LAST_UPDATE_ID = update_id
+            # ✅ skip old updates safely
+            if LAST_UPDATE_ID is not None and update_id <= LAST_UPDATE_ID:
+                continue
 
-        message = latest_update.get("message", {})
+            LAST_UPDATE_ID = update_id
 
-        if not message:
-            return
+            message = update.get("message", {})
+            if not message:
+                continue
 
-        if message.get("from", {}).get("is_bot"):
-            return
+            if message.get("from", {}).get("is_bot"):
+                continue
 
-        text = message.get("text", "").strip().lower()
-        chat_id = message["chat"]["id"]
+            text = message.get("text", "").strip().lower()
+            chat_id = message["chat"]["id"]
 
-        if not text:
-            return
+            if not text:
+                continue
 
-        print(f"📩 Received: {text}")
+            print(f"📩 Received: {text}")
 
-        # =====================================
-        # ✅ COMMAND HANDLING
-        # =====================================
+            # ===============================
+            # COMMANDS
+            # ===============================
 
-        if text == "status":
-            reply = "🟢 KRYPTRA AI STATUS: ONLINE ✅"
+            if text == "help":
+                reply = "📚 Commands: status, signals, trades, pnl"
 
-        elif text == "help":
-            reply = (
-                "📚 Commands:\n\n"
-                "status\nsignals\ntrades\npnl\nping\nhelp"
+            elif text == "status":
+                reply = "✅ System running"
+
+            elif text == "signals":
+                signals = get_latest_signals()
+                if not signals:
+                    reply = "⚠️ No signals"
+                else:
+                    reply = "🚨 Signals:\n\n"
+                    for s in signals:
+                        reply += f"{s[0]} → {s[1]} ({round(float(s[2]),2)}%)\n"
+
+            elif text == "trades":
+                trades = get_active_trades()
+                if not trades:
+                    reply = "⚠️ No trades"
+                else:
+                    reply = "📂 Trades:\n\n"
+                    for t in trades:
+                        reply += f"{t[0]} → {t[1]}\n"
+
+            elif text == "pnl":
+                report = get_pnl_report()
+                if not report:
+                    reply = "⚠️ No report"
+                else:
+                    reply = f"💰 Win Rate: {report['win_rate']}%"
+
+            else:
+                reply = "❌ Unknown command"
+
+            # ✅ SEND MESSAGE
+            requests.post(
+                f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+                json={"chat_id": chat_id, "text": reply}
             )
 
-        elif text == "ping":
-            reply = "🏓 Pong! System is responsive ✅"
-
-        elif text == "signals":
-            signals = get_latest_signals()
-
-            if not signals:
-                reply = "⚠️ No signals available"
-            else:
-                reply = "🚨 SIGNALS:\n\n"
-                for s in signals:
-                    reply += f"{s[0]} → {s[1]} ({round(float(s[2]), 2)}%)\n"
-
-        elif text == "trades":
-            trades = get_active_trades()
-
-            if not trades:
-                reply = "⚠️ No active trades"
-            else:
-                reply = "📂 ACTIVE TRADES:\n\n"
-                for t in trades:
-                    reply += f"{t[0]} → {t[1]}\n"
-
-        elif text == "pnl":
-            report = get_pnl_report()
-
-            if not report:
-                reply = "⚠️ No report available"
-            else:
-                reply = (
-                    f"💰 Win Rate: {report['win_rate']}%\n"
-                    f"📊 Active Trades: {report['active_trades']}\n"
-                    f"⚡ Signals: {report['signals']}\n"
-                    f"🟢 Accuracy: {report['ai_accuracy']}%"
-                )
-
-        else:
-            reply = "❌ Unknown command — type 'help'"
-
-        # ✅ SEND RESPONSE
-        send_telegram(chat_id, reply)
-
-        print(f"✅ Replied to: {text}")
+            print(f"✅ Replied to: {text}")
 
     except Exception as e:
-        print("🚨 Telegram error:", e)
+        print("Telegram error:", e)
