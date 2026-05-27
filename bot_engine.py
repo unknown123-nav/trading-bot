@@ -63,22 +63,19 @@ def process_timeframe(symbol, timeframe, table_name):
     # =====================================
 
     try:
-
-    ai_probability = predict_trade(
-        symbol,
-        timeframe,
-        signal,
-        confidence,
-        delta,
-        percentile,
-        pnl
-    )
-
-except Exception as e:
-
-    print("AI ENGINE FAILED:", e)
-
-    ai_probability = 0
+        ai_probability = predict_trade(
+            symbol,
+            timeframe,
+            signal,
+            confidence,
+            delta,
+            percentile,
+            pnl
+        )
+    except Exception as e:
+        print("AI ENGINE FAILED:", e)
+        
+        ai_probability = 0
     
 
     # =====================================
