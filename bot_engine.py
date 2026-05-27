@@ -95,7 +95,7 @@ def process_timeframe(symbol, timeframe, table_name):
     # =====================================
     # STRONG SIGNAL FILTER
     # =====================================
-    if confidence >= 60 and ai_probability > 0.6:
+    if confidence >= 65 and ai_probability > 0.9:
 
         create_paper_trade(symbol, signal, latest, confidence, timeframe)
 
