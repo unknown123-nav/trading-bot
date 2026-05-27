@@ -18,6 +18,7 @@ def send_signal(message):
             f"https://api.telegram.org/bot{token}/sendMessage",
             json={"chat_id": chat_id, "text": message}
         )
+        time.sleep(1)
         print("✅ Signal sent")
     except Exception as e:
         print("Signal error:", e)
@@ -94,7 +95,7 @@ def process_timeframe(symbol, timeframe, table_name):
     # CREATE TRADE
     # =====================================
 
-    if confidence >= 55:
+    if confidence >= 60 and ai_probability > 0.6:
 
         create_paper_trade(
             symbol,
@@ -178,3 +179,4 @@ def run_bots():
         process_timeframe(symbol, "1h", "signals_1h")
 
         update_bot(symbol, "RUNNING", symbol, 0)
+        time.sleep(2)
