@@ -1,8 +1,10 @@
 flask
 numpy
 pandas
+requests
+mysql-connector-python
+tensorflow==2.16.1
 scikit-learn
 joblib
 gunicorn
-requests
-
+h5py
