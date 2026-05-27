@@ -85,6 +85,7 @@ def predict_trade(
         # PREDICT
         # =====================================
 
+        print("Running AI prediction...")
         prediction = model.predict(
             features,
             verbose=0
@@ -95,6 +96,7 @@ def predict_trade(
         )
 
         return probability
+        print(f"AI Probability: {probability}")
 
     except Exception as e:
 
