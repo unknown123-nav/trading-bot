@@ -10,7 +10,7 @@ from ai_engine import predict_trade
 
 # ✅ GLOBAL LIMIT
 signal_count = 0
-
+symbol_used = {}
 def send_signal(message):
     token = "8864549600:AAH8S3USLHU6mOHSbcfxsMdrjYn47TXGCBY"   
     chat_id = "-5211298112"
@@ -42,10 +42,13 @@ def calculate_confidence(current, average):
 # =========================================
 def process_timeframe(symbol, timeframe, table_name):
 
-    global signal_count
+    global signal_count, symbol_used
 
     # ✅ LIMIT SIGNALS
     if signal_count >= 5:
+        return
+
+    if symbol in symbol_used:
         return
 
     # ✅ LIMIT OPEN TRADES (CRITICAL FIX ✅)
@@ -86,6 +89,12 @@ def process_timeframe(symbol, timeframe, table_name):
 
     # ✅ STRONG FILTER
     if confidence >= 55 and ai_probability > 0.7:
+        
+        open_trades = get_open_trades()
+        
+        if len(open_trades) >= 5:
+            return
+
 
         create_paper_trade(
             symbol,
@@ -123,7 +132,12 @@ def monitor_trades():
 
     trades = get_open_trades()
 
+    close_count = 0  # ✅ LIMIT CLOSE BURST
+
     for trade in trades:
+
+        if close_count >= 2:   # ✅ MAX 2 CLOSINGS PER CYCLE
+            return
 
         trade_id = trade[0]
         pair = trade[1]
@@ -153,21 +167,24 @@ def monitor_trades():
 
 Pair: {pair}
 Direction: {side}
-
 PNL: {pnl}%
 
 Time: {time.strftime('%H:%M:%S')}
 """
+
             send_signal(message)
 
+            close_count += 1
 
 # =========================================
 # ✅ MAIN BOT ENGINE
 # =========================================
 def run_bots():
 
-    global signal_count
-    signal_count = 0  # ✅ RESET EVERY CYCLE
+    global signal_count, symbol_used
+
+    signal_count = 0
+    symbol_used = {}
 
     for symbol in SYMBOLS:
 
