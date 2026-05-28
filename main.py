@@ -117,7 +117,7 @@ threading.Thread(target=keep_alive, daemon=True).start()
 def assistant_loop():
     print("🤖 Assistant Bot Started")
 
-    time.sleep(2)  
+    time.sleep(1)  
 
     while True:
         try:
@@ -144,7 +144,7 @@ def trading_loop():
             counter += 1
 
             # ✅ spread monitor more
-            if counter % 5 == 0:
+            if counter % 6 == 0:
                 monitor_trades()
 
             if counter % 60 == 0:
