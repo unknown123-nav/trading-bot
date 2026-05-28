@@ -17,7 +17,7 @@ symbol_used = {}
 # ✅ TELEGRAM SIGNAL SENDER
 # =========================================
 def send_signal(message):
-    token = "8864549600:AAH8S3USLHU6mOHSbcfxsMdrjYn47TXGCBY"
+    token = "8864549600:AAHPKnzLQknUwQv9y1kWIyU-TSP6WmdVXTA"
     chat_id = "-5211298112"
 
     try:
