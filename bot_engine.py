@@ -5,7 +5,6 @@ from db import update_bot, save_signal, create_paper_trade, get_open_trades, clo
 from config import SYMBOLS
 from ai_engine import predict_trade
 import threading
-import signal
 
 global last_run_time
 last_run_time = time.time()
@@ -36,8 +35,6 @@ def calculate_confidence(current, average):
     pct = abs((current - average) / average) * 100
     return max(50, min(round(50 + (pct * 10), 2), 99))
 
-def ai_timeout_handler(signum, frame):
-    raise TimeoutError("AI timed out")
 # =========================================
 # ✅ PROCESS SIGNAL
 # =========================================
@@ -63,8 +60,6 @@ def process_timeframe(symbol, timeframe, table_name):
 
     # ✅ SAFE AI CALL WITH TIMEOUT
     try:
-        signal.signal(signal.SIGALRM, ai_timeout_handler)
-        signal.alarm(2)
 
         ai_probability = predict_trade(
             symbol,
@@ -76,8 +71,6 @@ def process_timeframe(symbol, timeframe, table_name):
             0
         )
 
-        signal.alarm(0)
-
     except Exception as e:
         print("⚠️ AI timeout or error:", e)
         ai_probability = 0.7
@@ -86,7 +79,7 @@ def process_timeframe(symbol, timeframe, table_name):
 
     print(f"{symbol} {timeframe} | Conf={confidence} | AI={ai_probability}")
 
-    if confidence < 60 or ai_probability < 0.8:
+    if confidence < 60 or ai_probability < 0.7:
         print(f"❌ Skipped {symbol} {timeframe} (weak signal)")
         return False
 
