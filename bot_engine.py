@@ -208,12 +208,22 @@ def run_bots():
 
         # ✅ ALL TIMEFRAMES (teacher requirement ✅)
         process_timeframe(symbol, "1m", "signals_1m")
+        time.sleep(0.2)
+        
         process_timeframe(symbol, "3m", "signals_3m")
+        time.sleep(0.2)
+        
         process_timeframe(symbol, "5m", "signals_5m")
+        time.sleep(0.2)
+        
         process_timeframe(symbol, "15m", "signals_15m")
+        time.sleep(0.2)
+        
         process_timeframe(symbol, "30m", "signals_30m")
+        time.sleep(0.2)
+        
         process_timeframe(symbol, "1h", "signals_1h")
 
         update_bot(symbol, "RUNNING", symbol, 0)
 
-        time.sleep(2)  # ✅ spread workload
+        time.sleep(0.05)  # ✅ spread workload
