@@ -88,26 +88,29 @@ def process_timeframe(symbol, timeframe, table_name):
         return
 
     open_trades = get_open_trades()
+    # ✅ prevent duplicate pair trades
+    if symbol in [[1] for t in open_trades]:
+        return
 
 #     # ✅ IF MAX TRADES → SEND SIGNAL ONLY
-#     if len(open_trades) >= 5:
-#         print("⚠️ Max open trades reached — sending signal only")
+    if len(open_trades) >= 14:
+        print("⚠️ Max open trades reached — sending signal only")
 
-#         send_signal(f"""
-# 🚨 AI SIGNAL (NO TRADE)
+        send_signal(f"""
+🚨 AI SIGNAL (NO TRADE)
 
-# Pair: {symbol}
-# Timeframe: {timeframe}
-# Direction: {signal}
+Pair: {symbol}
+Timeframe: {timeframe}
+Direction: {signal}
 
-# Confidence: {confidence}%
-# AI Probability: {round(ai_probability * 100, 2)}%
+Confidence: {confidence}%
+AI Probability: {round(ai_probability * 100, 2)}%
 
-# ⚠️ Trade skipped (limit reached)
-# Time: {time.strftime('%H:%M:%S')}
-# """)
+⚠️ Trade skipped (limit reached)
+Time: {time.strftime('%H:%M:%S')}
+""")
 
-#         return
+        return
 
     # ✅ CREATE TRADE
     create_paper_trade(symbol, signal, latest, confidence, timeframe)
@@ -130,7 +133,7 @@ Time: {time.strftime('%Y-%m-%d %H:%M:%S')}
     symbol_used[symbol] = True
     signal_count += 1
 
-    time.sleep(0.05)
+    time.sleep(0.4)
 
 
 # =========================================
@@ -220,4 +223,4 @@ def run_bots():
 
         update_bot(symbol, "RUNNING", symbol, 0)
 
-        time.sleep(0.05)  # ✅ spread workload
+        time.sleep(0.2)  # ✅ spread workload
