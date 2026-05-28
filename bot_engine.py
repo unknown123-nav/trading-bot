@@ -123,45 +123,48 @@ Time: {time.strftime('%Y-%m-%d %H:%M:%S')}
 # ✅ MONITOR TRADES
 # =========================================
 def monitor_trades():
-
-    trades = get_open_trades()
+    try:
+        trades = get_open_trades()
+    except Exception as e:
+        print("❌ Error loading trades:", e)
+        return
 
     for trade in trades:
+        try:
+            trade_id = trade[0]
+            pair = trade[1]
+            side = trade[2]
+            entry = float(trade[3])
 
-        trade_id = trade[0]
-        pair = trade[1]
-        side = trade[2]
-        entry = float(trade[3])
+            df = get_data(pair, "1m", 1)
+            if df.empty:
+                continue
 
-        df = get_data(pair, "1m", 1)
-        if df.empty:
-            continue
+            current = float(df.iloc[0]['close'])
 
-        current = float(df.iloc[0]['close'])
+            pnl = (
+                (current - entry) / entry * 100
+                if side == "LONG"
+                else (entry - current) / entry * 100
+            )
 
-        pnl = (
-            (current - entry) / entry * 100
-            if side == "LONG"
-            else (entry - current) / entry * 100
-        )
+            pnl = round(pnl, 2)
 
-        pnl = round(pnl, 2)
+            if pnl >= 2 or pnl <= -2:
+                close_trade(trade_id, current, pnl)
 
-        # ✅ slightly relaxed exits
-        if pnl >= 2 or pnl <= -2:
-
-            close_trade(trade_id, current, pnl)
-
-            send_signal(f"""
+                send_signal(f"""
 ✅ TRADE CLOSED
 
 Pair: {pair}
 Direction: {side}
-
 PNL: {pnl}%
-
 Time: {time.strftime('%H:%M:%S')}
 """)
+
+        except Exception as e:
+            print("❌ Error in trade loop:", e)
+            continue
 
 
 # =========================================
@@ -173,43 +176,35 @@ def run_bots():
 
     print("💓 BOT ALIVE")
 
-    print("\n🟢 Starting new trading cycle...")
-
-    signals_found = 0  # ✅ track signals
+    signals_found = 0
 
     for symbol in SYMBOLS:
+        try:
+            print(f"\n🔎 Scanning: {symbol}")
 
-        print(f"\n🔎 Scanning: {symbol}")
+            for tf, table in [
+                ("5m", "signals_5m"),
+                ("15m", "signals_15m")
+            ]:
+                try:
+                    result = process_timeframe(symbol, tf, table)
 
-        count_before = signals_found
+                    if result:
+                        signals_found += 1
 
-        # ✅ run all timeframes
-        for tf, table in [
-             #("1m", "signals_1m"),
-            # ("3m", "signals_3m"),
-            ("5m", "signals_5m"),
-            # ("15m", "signals_15m"),
-            ("30m", "signals_30m")
-            # ("1h", "signals_1h")
-        ]:
-            result = process_timeframe(symbol, tf, table)
+                except Exception as e:
+                    print(f"❌ Error in timeframe {tf}: {e}")
+                    continue
 
-            if result:  #  if signal created
-                signals_found += 1
+            update_bot(symbol, "RUNNING", symbol, 0)
 
-        update_bot(symbol, "RUNNING", symbol, 0)
-
-        # ✅ show if symbol had no signals
-        if count_before == signals_found:
-            print(f"No signals for {symbol}")
+        except Exception as e:
+            print(f"❌ Error in symbol {symbol}: {e}")
+            continue
 
         time.sleep(0.3)
 
-    # ✅ FINAL STATUS PRINT
-    if signals_found == 0:
-        print("\n NO SIGNALS THIS CYCLE")
-    else:
-        print(f"\n {signals_found} SIGNAL(S) GENERATED THIS CYCLE")
+    print(f"\n✅ {signals_found} SIGNAL(S) GENERATED")
 
 def watchdog():
     global last_run_time
@@ -217,13 +212,6 @@ def watchdog():
     while True:
         time.sleep(10)
 
-        time_since_last = time.time() - last_run_time
-
-        if time_since_last > 40:  # 🔥 if stuck > 60 sec
-            print("🚨 BOT STUCK — FORCING RESET")
-
-            try:
-                import os
-                os._exit(1)  # ✅ kills process → Render restarts it
-            except:
-                pass
+        if time.time() - last_run_time > 120:
+            print("⚠️ BOT STUCK — resetting safely")
+            last_run_time = time.time()
