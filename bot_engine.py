@@ -40,10 +40,14 @@ def process_timeframe(symbol, timeframe, table_name):
 
     df = get_data(symbol, timeframe, 40)
     if df.empty:
+        print(f"⚠️ No data for {symbol} {timeframe}")
         return
 
     latest = float(df.iloc[0]['close'])
     avg = float(df['close'].mean())
+
+    if avg == 0:
+        avg = latest
 
     signal = "LONG" if latest > avg else "SHORT"
     confidence = calculate_confidence(latest, avg)
@@ -67,9 +71,7 @@ def process_timeframe(symbol, timeframe, table_name):
 
     print(f"{symbol} {timeframe} | Conf={confidence} | AI={ai_probability}")
 
-    # ✅ VERY LIGHT FILTER (always produces signals)
-    if confidence < 50:
-        return
+    pass
 
     # ✅ CREATE TRADE (no blocking)
     create_paper_trade(symbol, signal, latest, confidence, timeframe)
