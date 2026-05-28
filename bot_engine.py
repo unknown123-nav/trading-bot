@@ -8,11 +8,16 @@ from db import get_open_trades
 from db import close_trade
 from ai_engine import predict_trade
 
-# ✅ GLOBAL LIMIT
+# ✅ GLOBAL LIMITS
 signal_count = 0
 symbol_used = {}
+
+
+# =========================================
+# ✅ TELEGRAM SIGNAL SENDER
+# =========================================
 def send_signal(message):
-    token = "8864549600:AAH8S3USLHU6mOHSbcfxsMdrjYn47TXGCBY"   
+    token = "YOUR_SIGNAL_BOT_TOKEN"
     chat_id = "-5211298112"
 
     try:
@@ -20,9 +25,7 @@ def send_signal(message):
             f"https://api.telegram.org/bot{token}/sendMessage",
             json={"chat_id": chat_id, "text": message}
         )
-
-        time.sleep(1)  # ✅ RATE LIMIT (VERY IMPORTANT)
-
+        time.sleep(1)  # ✅ prevent API overload
         print("✅ Signal sent")
 
     except Exception as e:
@@ -44,16 +47,12 @@ def process_timeframe(symbol, timeframe, table_name):
 
     global signal_count, symbol_used
 
-    # ✅ LIMIT SIGNALS
+    # ✅ LIMIT TOTAL SIGNALS
     if signal_count >= 5:
         return
 
+    # ✅ LIMIT 1 SIGNAL PER SYMBOL
     if symbol in symbol_used:
-        return
-
-    # ✅ LIMIT OPEN TRADES (CRITICAL FIX ✅)
-    open_trades = get_open_trades()
-    if len(open_trades) >= 5:
         return
 
     df = get_data(symbol, timeframe, 40)
@@ -65,13 +64,14 @@ def process_timeframe(symbol, timeframe, table_name):
     avg = float(df['close'].mean())
 
     signal = "LONG" if latest > avg else "SHORT"
-
     confidence = calculate_confidence(latest, avg)
 
+    # ✅ AI FEATURES
     delta = abs(latest - avg)
     percentile = confidence
     pnl = 0
 
+    # ✅ AI PREDICTION
     try:
         ai_probability = predict_trade(
             symbol,
@@ -85,26 +85,38 @@ def process_timeframe(symbol, timeframe, table_name):
     except:
         ai_probability = 0
 
+    # ALWAYS SAVE FOR VISIBILITY
     save_signal(table_name, symbol, signal, confidence, latest)
 
-    # ✅ STRONG FILTER
-    if confidence >= 55 and ai_probability > 0.7:
-        
-        open_trades = get_open_trades()
-        
-        if len(open_trades) >= 5:
-            return
+    print(
+        f"{symbol} {timeframe} | "
+        f"Signal: {signal} | "
+        f"Confidence: {confidence} | "
+        f"AI: {round(ai_probability, 2)}"
+    )
 
+    #  SKIP WEAK SIGNALS
+    if confidence < 55 or ai_probability <= 0.7:
+        print(f"❌ Skipped {symbol} {timeframe} (Low confidence/AI)")
+        return
 
-        create_paper_trade(
-            symbol,
-            signal,
-            latest,
-            confidence,
-            timeframe
-        )
+    #  LIMIT OPEN TRADES
+    open_trades = get_open_trades()
+    if len(open_trades) >= 5:
+        print("⚠️ Max open trades reached")
+        return
 
-        message = f"""
+    # ✅ CREATE TRADE
+    create_paper_trade(
+        symbol,
+        signal,
+        latest,
+        confidence,
+        timeframe
+    )
+
+    # ✅ TELEGRAM MESSAGE
+    message = f"""
 🚨 AI SIGNAL
 
 Pair: {symbol}
@@ -120,23 +132,25 @@ Entry: {latest}
 Time: {time.strftime('%Y-%m-%d %H:%M:%S')}
 """
 
-        send_signal(message)
+    send_signal(message)
 
-        signal_count += 1
+    # ✅ UPDATE LIMITS
+    symbol_used[symbol] = True
+    signal_count += 1
 
 
 # =========================================
-# ✅ MONITOR TRADES
+# ✅ MONITOR TRADES (CONTROLLED)
 # =========================================
 def monitor_trades():
 
     trades = get_open_trades()
-
-    close_count = 0  # ✅ LIMIT CLOSE BURST
+    close_count = 0
 
     for trade in trades:
 
-        if close_count >= 2:   # ✅ MAX 2 CLOSINGS PER CYCLE
+        # ✅ LIMIT CLOSURES PER CYCLE
+        if close_count >= 2:
             return
 
         trade_id = trade[0]
@@ -167,6 +181,7 @@ def monitor_trades():
 
 Pair: {pair}
 Direction: {side}
+
 PNL: {pnl}%
 
 Time: {time.strftime('%H:%M:%S')}
@@ -175,6 +190,7 @@ Time: {time.strftime('%H:%M:%S')}
             send_signal(message)
 
             close_count += 1
+
 
 # =========================================
 # ✅ MAIN BOT ENGINE
@@ -190,6 +206,7 @@ def run_bots():
 
         print(f"Running {symbol}")
 
+        # ✅ ALL TIMEFRAMES (teacher requirement ✅)
         process_timeframe(symbol, "1m", "signals_1m")
         process_timeframe(symbol, "3m", "signals_3m")
         process_timeframe(symbol, "5m", "signals_5m")
@@ -199,4 +216,4 @@ def run_bots():
 
         update_bot(symbol, "RUNNING", symbol, 0)
 
-        time.sleep(2)
+        time.sleep(2)  # ✅ spread workload
