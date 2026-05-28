@@ -48,7 +48,7 @@ def process_timeframe(symbol, timeframe, table_name):
     global signal_count, symbol_used
 
     # ✅ LIMIT TOTAL SIGNALS
-    if signal_count >= 5:
+    if signal_count >= 8:
         return
 
     # ✅ LIMIT 1 SIGNAL PER SYMBOL
