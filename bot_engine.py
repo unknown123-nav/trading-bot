@@ -156,6 +156,7 @@ Time: {time.strftime('%H:%M:%S')}
 # ✅ MAIN BOT ENGINE
 # =========================================
 def run_bots():
+    print(f"⏱ {time.strftime('%H:%M:%S')} still running")
     global last_run_time
     last_run_time = time.time()
 
