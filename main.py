@@ -91,9 +91,7 @@ def trading_loop():
 
 threading.Thread(target=assistant_loop, daemon=True).start()
 
-# ✅ TEMP: DISABLE TRADING (FOR DEMO STABILITY)
-# COMMENT THIS IF ASSISTANT STILL NOT REPLYING
-# threading.Thread(target=trading_loop, daemon=True).start()
+threading.Thread(target=trading_loop, daemon=True).start()
 
 # =========================================
 # ✅ START APP
