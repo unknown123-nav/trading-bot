@@ -62,29 +62,21 @@ def assistant_loop():
 # =========================================
 # ✅ TRADING LOOP (SAFE VERSION)
 # =========================================
-
 def trading_loop():
     print("🚀 Trading Engine Started")
-
-    counter = 0
 
     while True:
         try:
             print("🔁 Running trading cycle...")
 
-            # ✅ RUN ONCE (NO MULTIPLE THREADS)
             run_bots()
-
-            counter += 1
-
-            if counter % 6 == 0:
-                monitor_trades()
+            monitor_trades()
 
         except Exception as e:
             print("Trading Loop Error:", e)
 
-        # ✅ IMPORTANT → slow down system
-        time.sleep(90)
+        # ✅ small delay (NOT 90s)
+        time.sleep(5)
 
 # =========================================
 # ✅ START THREADS
