@@ -17,7 +17,7 @@ symbol_used = {}
 # ✅ TELEGRAM SIGNAL SENDER
 # =========================================
 def send_signal(message):
-    token = "YOUR_SIGNAL_BOT_TOKEN"
+    token = "8864549600:AAH8S3USLHU6mOHSbcfxsMdrjYn47TXGCBY"
     chat_id = "-5211298112"
 
     try:
@@ -47,16 +47,13 @@ def process_timeframe(symbol, timeframe, table_name):
 
     global signal_count, symbol_used
 
-    # ✅ LIMIT TOTAL SIGNALS
     if signal_count >= 8:
         return
 
-    # ✅ LIMIT 1 SIGNAL PER SYMBOL
     if symbol in symbol_used:
         return
 
     df = get_data(symbol, timeframe, 40)
-
     if df.empty:
         return
 
@@ -66,12 +63,8 @@ def process_timeframe(symbol, timeframe, table_name):
     signal = "LONG" if latest > avg else "SHORT"
     confidence = calculate_confidence(latest, avg)
 
-    # ✅ AI FEATURES
     delta = abs(latest - avg)
-    percentile = confidence
-    pnl = 0
 
-    # ✅ AI PREDICTION
     try:
         ai_probability = predict_trade(
             symbol,
@@ -79,64 +72,65 @@ def process_timeframe(symbol, timeframe, table_name):
             signal,
             confidence,
             delta,
-            percentile,
-            pnl
+            confidence,
+            0
         )
     except:
         ai_probability = 0
 
-    # ALWAYS SAVE FOR VISIBILITY
     save_signal(table_name, symbol, signal, confidence, latest)
 
-    print(
-        f"{symbol} {timeframe} | "
-        f"Signal: {signal} | "
-        f"Confidence: {confidence} | "
-        f"AI: {round(ai_probability, 2)}"
-    )
+    print(f"{symbol} {timeframe} | Confidence={confidence} | AI={ai_probability}")
 
-    #  SKIP WEAK SIGNALS
-    if confidence < 55 or ai_probability <= 0.7:
-        print(f"❌ Skipped {symbol} {timeframe} (Low confidence/AI)")
+    # ✅ RELAXED FILTER (IMPORTANT)
+    if confidence < 52 or ai_probability <= 0.6:
+        print(f"❌ Skipped {symbol} {timeframe}")
         return
 
-    #  LIMIT OPEN TRADES
     open_trades = get_open_trades()
+
+    # ✅ IF MAX TRADES → SEND SIGNAL ONLY
     if len(open_trades) >= 5:
-        print("⚠️ Max open trades reached")
+        print("⚠️ Max open trades reached — sending signal only")
+
+        send_signal(f"""
+🚨 AI SIGNAL (NO TRADE)
+
+Pair: {symbol}
+Timeframe: {timeframe}
+Direction: {signal}
+
+Confidence: {confidence}%
+AI Probability: {round(ai_probability * 100, 2)}%
+
+⚠️ Trade skipped (limit reached)
+Time: {time.strftime('%H:%M:%S')}
+""")
+
         return
 
     # ✅ CREATE TRADE
-    create_paper_trade(
-        symbol,
-        signal,
-        latest,
-        confidence,
-        timeframe
-    )
+    create_paper_trade(symbol, signal, latest, confidence, timeframe)
 
-    # ✅ TELEGRAM MESSAGE
-    message = f"""
+    # ✅ SEND NORMAL SIGNAL
+    send_signal(f"""
 🚨 AI SIGNAL
 
 Pair: {symbol}
 Timeframe: {timeframe}
-
 Direction: {signal}
 
 Confidence: {confidence}%
 AI Probability: {round(ai_probability * 100, 2)}%
 
 Entry: {latest}
-
 Time: {time.strftime('%Y-%m-%d %H:%M:%S')}
-"""
+""")
 
-    send_signal(message)
-
-    # ✅ UPDATE LIMITS
     symbol_used[symbol] = True
     signal_count += 1
+
+    time.sleep(0.05)
 
 
 # =========================================
