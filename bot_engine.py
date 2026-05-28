@@ -83,7 +83,7 @@ def process_timeframe(symbol, timeframe, table_name):
     print(f"{symbol} {timeframe} | Confidence={confidence} | AI={ai_probability}")
 
     # ✅ RELAXED FILTER (IMPORTANT)
-    if confidence < 52 or ai_probability <= 0.6:
+    if confidence < 55 or ai_probability <= 0.6:
         print(f"❌ Skipped {symbol} {timeframe}")
         return
 
