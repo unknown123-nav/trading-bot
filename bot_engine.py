@@ -60,34 +60,19 @@ def process_timeframe(symbol, timeframe, table_name):
     confidence = calculate_confidence(latest, avg)
     delta = abs(latest - avg)
 
-    # ✅ SAFE AI CALL (ANTI-FREEZE)
-    result = []
-
-    def safe_ai():
-        try:
-            res = predict_trade(
-                symbol,
-                timeframe,
-                signal,
-                confidence,
-                delta,
-                confidence,
-                0
-            )
-            result.append(res)
-        except Exception as e:
-            print("AI error:", e)
-            result.append(0.7)
-
-    t = threading.Thread(target=safe_ai)
-    t.start()
-    t.join(timeout=2)  # ✅ MAX 2 seconds
-
-    if t.is_alive():
-        print(f"⚠️ AI timeout {symbol} {timeframe}")
+    try:
+        ai_probability = predict_trade(
+            symbol,
+            timeframe,
+            signal,
+            confidence,
+            delta,
+            confidence,
+            0
+        )
+    except Exception as e:
+        print("⚠️ AI failed:", e)
         ai_probability = 0.7
-    else:
-        ai_probability = result[0]
 
     save_signal(table_name, symbol, signal, confidence, latest)
 
