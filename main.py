@@ -125,7 +125,7 @@ def assistant_loop():
         except Exception as e:
             print("Assistant Error:", e)
 
-        time.sleep(5)
+        time.sleep(3)
 
 # =========================================
 # ✅ TRADING LOOP
@@ -144,7 +144,7 @@ def trading_loop():
             counter += 1
 
             # ✅ spread monitor more
-            if counter % 4 == 0:
+            if counter % 5 == 0:
                 monitor_trades()
 
             if counter % 60 == 0:
