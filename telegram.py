@@ -15,7 +15,7 @@ LAST_UPDATE_ID = None
 # ✅ SEND TELEGRAM MESSAGE
 # =========================================
 def send_telegram(chat_id, message):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates?limit=1"
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
 
     try:
         requests.post(url, json={
