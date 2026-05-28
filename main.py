@@ -108,6 +108,7 @@ def keep_alive():
 
 
 threading.Thread(target=keep_alive, daemon=True).start()
+time.sleep(5)
 
 
 # =========================================
@@ -125,7 +126,7 @@ def assistant_loop():
         except Exception as e:
             print("Assistant Error:", e)
 
-        time.sleep(3)
+        time.sleep(2)
 
 # =========================================
 # ✅ TRADING LOOP
