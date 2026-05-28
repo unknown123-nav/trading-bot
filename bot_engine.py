@@ -8,11 +8,9 @@ from db import get_open_trades
 from db import close_trade
 from ai_engine import predict_trade
 
-# ✅ GLOBAL LIMITS
+
 signal_count = 0
 symbol_used = {}
-
-
 # =========================================
 # ✅ TELEGRAM SIGNAL SENDER
 # =========================================
@@ -25,7 +23,7 @@ def send_signal(message):
             f"https://api.telegram.org/bot{token}/sendMessage",
             json={"chat_id": chat_id, "text": message}
         )
-        time.sleep(1)  # ✅ prevent API overload
+        time.sleep(1)  #  prevent API overload
         print("✅ Signal sent")
 
     except Exception as e:
@@ -33,7 +31,7 @@ def send_signal(message):
 
 
 # =========================================
-# ✅ CONFIDENCE CALCULATION
+#  CONFIDENCE CALCULATION
 # =========================================
 def calculate_confidence(current, average):
     pct = abs((current - average) / average) * 100
@@ -41,7 +39,7 @@ def calculate_confidence(current, average):
 
 
 # =========================================
-# ✅ PROCESS SIGNAL
+#  PROCESS SIGNAL
 # =========================================
 def process_timeframe(symbol, timeframe, table_name):
 
@@ -82,13 +80,13 @@ def process_timeframe(symbol, timeframe, table_name):
 
     print(f"{symbol} {timeframe} | Confidence={confidence} | AI={ai_probability}")
 
-    # ✅ RELAXED FILTER (IMPORTANT)
+    #  RELAXED FILTER (IMPORTANT)
     if confidence <= 55 or ai_probability <= 0.6:
         print(f"❌ Skipped {symbol} {timeframe}")
         return
 
     open_trades = get_open_trades()
-    # ✅ prevent duplicate pair trades
+    #  prevent duplicate pair trades
     if symbol in [t[1] for t in open_trades]:
         return
 
