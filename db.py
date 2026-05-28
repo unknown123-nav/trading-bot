@@ -439,90 +439,58 @@ def get_pnl_report():
 # =========================================
 # GET OPEN TRADES
 # =========================================
-
 def get_open_trades():
 
     conn = get_connection()
-
     cursor = conn.cursor()
 
     try:
-
         query = """
-        SELECT
-            id,
-            pair,
-            side,
-            entry_price
+        SELECT id, pair, side, entry_price
         FROM paper_trades
         WHERE status = 'OPEN'
         """
 
         cursor.execute(query)
-
-        rows = cursor.fetchall()
-
-        return rows
+        return cursor.fetchall()
 
     except Exception as e:
-
-        print(
-            "Open trade fetch error:",
-            e
-        )
-
+        print("Open trade fetch error:", e)
         return []
 
     finally:
-
         cursor.close()
-
         conn.close()
-
 
 # =========================================
 # CLOSE TRADE
 # =========================================
-
-def close_trade(
-    trade_id,
-    exit_price,
-    pnl
-):
-
-    conn = get_connection()
-
-    cursor = conn.cursor()
+def close_trade(trade_id, current_price, pnl):
+    conn = None
+    cursor = None
 
     try:
+        conn = get_connection()
+        cursor = conn.cursor()
 
-        query = """
-        UPDATE paper_trades
-        SET
-            exit_price = %s,
-            pnl = %s,
-            status = 'CLOSED',
-            closed_at = NOW()
-        WHERE id = %s
-        """
-
-        cursor.execute(query, (
-            exit_price,
-            pnl,
-            trade_id
-        ))
+        cursor.execute("""
+            UPDATE paper_trades
+            SET 
+                current_price = %s,
+                pnl = %s,
+                status = 'CLOSED',
+                closed_at = NOW()
+            WHERE id = %s
+        """, (current_price, pnl, trade_id))
 
         conn.commit()
+        print(f"✅ Trade {trade_id} closed and saved")
 
     except Exception as e:
-
-        print(
-            "Close trade error:",
-            e
-        )
+        print("Close trade error:", e)
 
     finally:
-
-        cursor.close()
-
-        conn.close()
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
