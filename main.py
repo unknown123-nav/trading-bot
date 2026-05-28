@@ -80,22 +80,29 @@ def trading_loop():
         
 def heartbeat_loop():
     while True:
+        start_time = time.time()
+
         try:
             msg = f"💓 BOT STILL RUNNING\nTime: {time.strftime('%H:%M:%S')}"
+
             requests.post(
                 "https://api.telegram.org/bot8864549600:AAHPKnzLQknUwQv9y1kWIyU-TSP6WmdVXTA/sendMessage",
                 json={
                     "chat_id": "-5211298112",
                     "text": msg
                 },
-                timeout=3
+                timeout=5   # ✅ increased timeout
             )
+
             print("💓 Heartbeat sent")
 
         except Exception as e:
-            print("Heartbeat error:", e)
+            print("❌ Heartbeat error:", e)
 
-        time.sleep(300)  # ✅ every 5 minutes
+        # ✅ SAFER WAIT (prevents drift + blocking)
+        elapsed = time.time() - start_time
+        sleep_time = max(0, 300 - elapsed)
+        time.sleep(sleep_time)
 # =========================================
 # ✅ START THREADS
 # =========================================
