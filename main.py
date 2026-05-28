@@ -130,7 +130,6 @@ def assistant_loop():
 # =========================================
 # ✅ TRADING LOOP
 # =========================================
-
 def trading_loop():
     print("🚀 Trading Engine Started")
 
@@ -140,16 +139,14 @@ def trading_loop():
         try:
             print("🔁 Running trading cycle...")
 
-            # ✅ ONLY RUN SIGNALS HERE
             run_bots()
 
             counter += 1
 
-            # ✅ Run monitor LESS frequently
-            if counter % 3 == 0:
+            # ✅ spread monitor more
+            if counter % 4 == 0:
                 monitor_trades()
 
-            # ✅ Cleanup every hour
             if counter % 60 == 0:
                 clean_old_data()
 
@@ -157,7 +154,6 @@ def trading_loop():
             print("Trading Loop Error:", e)
 
         time.sleep(60)
-
 
 
 # =========================================
