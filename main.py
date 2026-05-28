@@ -21,74 +21,7 @@ def home():
 
 
 # =========================================
-# ✅ DATABASE CONNECTION
-# =========================================
-
-def get_connection():
-    try:
-        conn = mysql.connector.connect(
-            host="hopper.proxy.rlwy.net",
-            user="root",
-            password="LygrVoBHOocJwSIDejJqBNVIjbziUGxo",
-            database="railway",
-            port=28847
-        )
-        return conn
-    except Exception as e:
-        print("DB Connection Error:", e)
-        return None
-
-
-print("✅ Python Bot Engine Starting...")
-
-
-# =========================================
-# ✅ CLEANUP FUNCTION
-# =========================================
-
-def clean_old_data():
-    try:
-        conn = get_connection()
-
-        if not conn:
-            return
-
-        cursor = conn.cursor()
-
-        print("🧹 Cleaning old data...")
-
-        tables = [
-            "signals_1m",
-            "signals_3m",
-            "signals_5m",
-            "signals_15m",
-            "signals_30m",
-            "signals_1h"
-        ]
-
-        for table in tables:
-            cursor.execute(f"""
-                DELETE FROM {table}
-                WHERE id NOT IN (
-                    SELECT id FROM (
-                        SELECT id FROM {table}
-                        ORDER BY created_at DESC
-                        LIMIT 20000
-                    ) t
-                )
-            """)
-
-        conn.commit()
-        conn.close()
-
-        print("✅ Cleanup completed")
-
-    except Exception as e:
-        print("Cleanup error:", e)
-
-
-# =========================================
-# ✅ KEEP ALIVE (EXTRA SAFETY)
+# ✅ KEEP ALIVE
 # =========================================
 
 def keep_alive():
@@ -108,17 +41,13 @@ def keep_alive():
 
 
 threading.Thread(target=keep_alive, daemon=True).start()
-time.sleep(5)
-
 
 # =========================================
-# ✅ TELEGRAM ASSISTANT LOOP
+# ✅ TELEGRAM ASSISTANT LOOP (IMPORTANT)
 # =========================================
 
 def assistant_loop():
     print("🤖 Assistant Bot Started")
-
-    time.sleep(1)  
 
     while True:
         try:
@@ -126,11 +55,13 @@ def assistant_loop():
         except Exception as e:
             print("Assistant Error:", e)
 
-        time.sleep(2)
+        # ✅ keep fast response
+        time.sleep(1)
 
 # =========================================
-# ✅ TRADING LOOP
+# ✅ TRADING LOOP (SAFE VERSION)
 # =========================================
+
 def trading_loop():
     print("🚀 Trading Engine Started")
 
@@ -140,33 +71,32 @@ def trading_loop():
         try:
             print("🔁 Running trading cycle...")
 
+            # ✅ RUN ONCE (NO MULTIPLE THREADS)
             run_bots()
 
             counter += 1
 
-            # ✅ spread monitor more
             if counter % 6 == 0:
                 monitor_trades()
-
-            if counter % 60 == 0:
-                clean_old_data()
 
         except Exception as e:
             print("Trading Loop Error:", e)
 
-        time.sleep(60)
-
+        # ✅ IMPORTANT → slow down system
+        time.sleep(90)
 
 # =========================================
 # ✅ START THREADS
 # =========================================
 
 threading.Thread(target=assistant_loop, daemon=True).start()
-threading.Thread(target=trading_loop, daemon=True).start()
 
+# ✅ TEMP: DISABLE TRADING (FOR DEMO STABILITY)
+# COMMENT THIS IF ASSISTANT STILL NOT REPLYING
+# threading.Thread(target=trading_loop, daemon=True).start()
 
 # =========================================
-# ✅ START APP (CRITICAL FOR RENDER)
+# ✅ START APP
 # =========================================
 
 if __name__ == "__main__":
