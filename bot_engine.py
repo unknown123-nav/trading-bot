@@ -70,8 +70,10 @@ def process_timeframe(symbol, timeframe, table_name):
     save_signal(table_name, symbol, signal, confidence, latest)
 
     print(f"{symbol} {timeframe} | Conf={confidence} | AI={ai_probability}")
-
-    pass
+    
+    if confidence < 55 or ai_probability < 0.8:
+        print(f"❌ Skipped {symbol} {timeframe} (weak signal)")
+        return
 
     # ✅ CREATE TRADE (no blocking)
     create_paper_trade(symbol, signal, latest, confidence, timeframe)
