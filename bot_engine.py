@@ -83,13 +83,13 @@ def process_timeframe(symbol, timeframe, table_name):
     print(f"{symbol} {timeframe} | Confidence={confidence} | AI={ai_probability}")
 
     # ✅ RELAXED FILTER (IMPORTANT)
-    if confidence < 55 or ai_probability <= 0.6:
+    if confidence <= 55 or ai_probability <= 0.6:
         print(f"❌ Skipped {symbol} {timeframe}")
         return
 
     open_trades = get_open_trades()
     # ✅ prevent duplicate pair trades
-    if symbol in [[1] for t in open_trades]:
+    if symbol in [t[1] for t in open_trades]:
         return
 
 #     # ✅ IF MAX TRADES → SEND SIGNAL ONLY
