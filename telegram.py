@@ -15,7 +15,7 @@ LAST_UPDATE_ID = None
 # ✅ SEND TELEGRAM MESSAGE
 # =========================================
 def send_telegram(chat_id, message):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates?limit=1"
 
     try:
         requests.post(url, json={
@@ -35,10 +35,14 @@ def check_replies():
     global LAST_UPDATE_ID
 
     try:
-        url = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates"
+        if LAST_UPDATE_ID:
+            url = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates?offset={LAST_UPDATE_ID + 1}"
+        else:
+            url = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates"
 
         response = requests.get(url, timeout=10)
         data = response.json()
+
 
         if not data.get("ok"):
             return
@@ -52,10 +56,7 @@ def check_replies():
 
             update_id = update["update_id"]
 
-            if LAST_UPDATE_ID is not None and update_id <= LAST_UPDATE_ID:
-                continue
-
-            LAST_UPDATE_ID = update_id
+            LAST_UPDATE_ID = update_id   
 
             message = update.get("message", {})
             if not message:
@@ -66,6 +67,7 @@ def check_replies():
 
             text = message.get("text", "").strip().lower()
             chat_id = message["chat"]["id"]
+
 
             if not text:
                 continue
@@ -165,6 +167,7 @@ def check_replies():
             send_telegram(chat_id, reply)
 
             print(f"✅ Replied to: {text}")
+            time.sleep(2)
 
     except Exception as e:
         print("Telegram error:", e)
