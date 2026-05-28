@@ -146,17 +146,40 @@ Time: {time.strftime('%H:%M:%S')}
 # =========================================
 def run_bots():
 
+    print("\n🟢 Starting new trading cycle...")
+
+    signals_found = 0  # ✅ track signals
+
     for symbol in SYMBOLS:
 
-        print(f"Running {symbol}")
+        print(f"\n🔎 Scanning: {symbol}")
 
-        process_timeframe(symbol, "1m", "signals_1m")
-        process_timeframe(symbol, "3m", "signals_3m")
-        process_timeframe(symbol, "5m", "signals_5m")
-        process_timeframe(symbol, "15m", "signals_15m")
-        process_timeframe(symbol, "30m", "signals_30m")
-        process_timeframe(symbol, "1h", "signals_1h")
+        count_before = signals_found
+
+        # ✅ run all timeframes
+        for tf, table in [
+            ("1m", "signals_1m"),
+            ("3m", "signals_3m"),
+            ("5m", "signals_5m"),
+            ("15m", "signals_15m"),
+            ("30m", "signals_30m"),
+            ("1h", "signals_1h")
+        ]:
+            result = process_timeframe(symbol, tf, table)
+
+            if result:  #  if signal created
+                signals_found += 1
 
         update_bot(symbol, "RUNNING", symbol, 0)
 
+        # ✅ show if symbol had no signals
+        if count_before == signals_found:
+            print(f"No signals for {symbol}")
+
         time.sleep(0.3)
+
+    # ✅ FINAL STATUS PRINT
+    if signals_found == 0:
+        print("\n NO SIGNALS THIS CYCLE")
+    else:
+        print(f"\n {signals_found} SIGNAL(S) GENERATED THIS CYCLE")
