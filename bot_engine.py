@@ -4,7 +4,11 @@ from market import get_data
 from db import update_bot, save_signal, create_paper_trade, get_open_trades, close_trade
 from config import SYMBOLS
 from ai_engine import predict_trade
+import threading
 
+
+global last_run_time
+last_run_time = time.time()
 
 # =========================================
 # ✅ TELEGRAM SIGNAL SENDER
@@ -16,10 +20,10 @@ def send_signal(message):
     try:
         requests.post(
             f"https://api.telegram.org/bot{token}/sendMessage",
-            json={"chat_id": chat_id, "text": message}
+            json={"chat_id": chat_id, "text": message},
+            timeout=3  # 🔥 VERY IMPORTANT
         )
         print("✅ Signal sent")
-        time.sleep(0.5)
 
     except Exception as e:
         print("Signal error:", e)
@@ -38,6 +42,9 @@ def calculate_confidence(current, average):
 # =========================================
 def process_timeframe(symbol, timeframe, table_name):
 
+    global last_run_time
+    last_run_time = time.time()
+
     df = get_data(symbol, timeframe, 40)
     if df.empty:
         print(f"⚠️ No data for {symbol} {timeframe}")
@@ -51,35 +58,50 @@ def process_timeframe(symbol, timeframe, table_name):
 
     signal = "LONG" if latest > avg else "SHORT"
     confidence = calculate_confidence(latest, avg)
-
     delta = abs(latest - avg)
 
-    time.sleep(0.05)
-    try:
-        ai_probability = predict_trade(
-            symbol,
-            timeframe,
-            signal,
-            confidence,
-            delta,
-            confidence,
-            0
-        )
-    except:
-        ai_probability = 0.5  # ✅ fallback so signal still works
+    # ✅ SAFE AI CALL (ANTI-FREEZE)
+    result = []
+
+    def safe_ai():
+        try:
+            res = predict_trade(
+                symbol,
+                timeframe,
+                signal,
+                confidence,
+                delta,
+                confidence,
+                0
+            )
+            result.append(res)
+        except Exception as e:
+            print("AI error:", e)
+            result.append(0.7)
+
+    t = threading.Thread(target=safe_ai)
+    t.start()
+    t.join(timeout=2)  # ✅ MAX 2 seconds
+
+    if t.is_alive():
+        print(f"⚠️ AI timeout {symbol} {timeframe}")
+        ai_probability = 0.7
+    else:
+        ai_probability = result[0]
 
     save_signal(table_name, symbol, signal, confidence, latest)
 
     print(f"{symbol} {timeframe} | Conf={confidence} | AI={ai_probability}")
-    
-    if confidence < 55 or ai_probability < 0.8:
+
+    # ✅ FILTER
+    if confidence < 60 or ai_probability < 0.8:
         print(f"❌ Skipped {symbol} {timeframe} (weak signal)")
         return False
 
-    # ✅ CREATE TRADE (no blocking)
+    # ✅ CREATE TRADE
     create_paper_trade(symbol, signal, latest, confidence, timeframe)
 
-    # ✅ SEND SIGNAL ALWAYS
+    # ✅ SEND SIGNAL
     send_signal(f"""
 🚨 AI SIGNAL
 
@@ -94,7 +116,6 @@ Entry: {latest}
 Time: {time.strftime('%Y-%m-%d %H:%M:%S')}
 """)
 
-    time.sleep(0.2)
     return True
 
 
@@ -147,6 +168,10 @@ Time: {time.strftime('%H:%M:%S')}
 # ✅ MAIN BOT ENGINE
 # =========================================
 def run_bots():
+    global last_run_time
+    last_run_time = time.time()
+
+    print("💓 BOT ALIVE")
 
     print("\n🟢 Starting new trading cycle...")
 
@@ -160,7 +185,7 @@ def run_bots():
 
         # ✅ run all timeframes
         for tf, table in [
-             ("1m", "signals_1m"),
+             #("1m", "signals_1m"),
             # ("3m", "signals_3m"),
             ("5m", "signals_5m"),
             # ("15m", "signals_15m"),
@@ -185,3 +210,20 @@ def run_bots():
         print("\n NO SIGNALS THIS CYCLE")
     else:
         print(f"\n {signals_found} SIGNAL(S) GENERATED THIS CYCLE")
+
+def watchdog():
+    global last_run_time
+
+    while True:
+        time.sleep(10)
+
+        time_since_last = time.time() - last_run_time
+
+        if time_since_last > 40:  # 🔥 if stuck > 60 sec
+            print("🚨 BOT STUCK — FORCING RESET")
+
+            try:
+                import os
+                os._exit(1)  # ✅ kills process → Render restarts it
+            except:
+                pass
