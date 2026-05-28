@@ -6,8 +6,9 @@ import mysql.connector
 
 from flask import Flask
 
-from bot_engine import run_bots, monitor_trades
+from bot_engine import run_bots, monitor_trades, watchdog
 from telegram import check_replies
+
 
 # =========================================
 # ✅ FLASK SERVER (PREVENT SLEEP)
@@ -90,6 +91,7 @@ def trading_loop():
 # =========================================
 
 threading.Thread(target=assistant_loop, daemon=True).start()
+threading.Thread(target=watchdog, daemon=True).start()
 
 threading.Thread(target=trading_loop, daemon=True).start()
 
