@@ -41,7 +41,7 @@ def process_timeframe(symbol, timeframe, table_name):
     df = get_data(symbol, timeframe, 40)
     if df.empty:
         print(f"⚠️ No data for {symbol} {timeframe}")
-        return
+        return False
 
     latest = float(df.iloc[0]['close'])
     avg = float(df['close'].mean())
@@ -54,6 +54,7 @@ def process_timeframe(symbol, timeframe, table_name):
 
     delta = abs(latest - avg)
 
+    time.sleep(0.05)
     try:
         ai_probability = predict_trade(
             symbol,
@@ -73,7 +74,7 @@ def process_timeframe(symbol, timeframe, table_name):
     
     if confidence < 55 or ai_probability < 0.8:
         print(f"❌ Skipped {symbol} {timeframe} (weak signal)")
-        return
+        return False
 
     # ✅ CREATE TRADE (no blocking)
     create_paper_trade(symbol, signal, latest, confidence, timeframe)
@@ -94,6 +95,7 @@ Time: {time.strftime('%Y-%m-%d %H:%M:%S')}
 """)
 
     time.sleep(0.2)
+    return True
 
 
 # =========================================
@@ -158,12 +160,12 @@ def run_bots():
 
         # ✅ run all timeframes
         for tf, table in [
-            ("1m", "signals_1m"),
-            ("3m", "signals_3m"),
+             ("1m", "signals_1m"),
+            # ("3m", "signals_3m"),
             ("5m", "signals_5m"),
-            ("15m", "signals_15m"),
-            ("30m", "signals_30m"),
-            ("1h", "signals_1h")
+            # ("15m", "signals_15m"),
+            ("30m", "signals_30m")
+            # ("1h", "signals_1h")
         ]:
             result = process_timeframe(symbol, tf, table)
 
