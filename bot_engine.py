@@ -1,16 +1,23 @@
 import time
 import requests
+import multiprocessing
+
 from market import get_data
-from db import update_bot, save_signal, create_paper_trade, get_open_trades, close_trade
+from db import (
+    update_bot,
+    save_signal,
+    create_paper_trade,
+    get_open_trades,
+    close_trade
+)
 from config import SYMBOLS
 from ai_engine import predict_trade
-import threading
-import multiprocessing
-global last_run_time
+
+
 last_run_time = time.time()
 
 # =========================================
-# ✅ TELEGRAM SIGNAL SENDER
+# ✅ TELEGRAM SIGNAL
 # =========================================
 def send_signal(message):
     token = "8864549600:AAHaY2Q84VpkDBhYH6J0X4SNzpj-DLvGM_k"
@@ -20,62 +27,58 @@ def send_signal(message):
         requests.post(
             f"https://api.telegram.org/bot{token}/sendMessage",
             json={"chat_id": chat_id, "text": message},
-            timeout=3  # 🔥 VERY IMPORTANT
+            timeout=3
         )
-        print("✅ Signal sent")
-
     except Exception as e:
         print("Signal error:", e)
 
 
 # =========================================
-# ✅ CONFIDENCE CALCULATION
+# ✅ CONFIDENCE
 # =========================================
-def calculate_confidence(current, average):
-    pct = abs((current - average) / average) * 100
+def calculate_confidence(current, avg):
+    pct = abs((current - avg) / avg) * 100
     return max(50, min(round(50 + (pct * 10), 2), 99))
-    
+
+
+# =========================================
+# ✅ SAFE AI (PROCESS BASED)
+# =========================================
 def run_ai(queue, symbol, timeframe, signal_type, confidence, delta):
     try:
-        result = predict_trade(
-            symbol,
-            timeframe,
+        res = predict_trade(
+            symbol, timeframe,
             signal_type,
             confidence,
             delta,
             confidence,
             0
         )
-        queue.put(result)
+        queue.put(res)
     except:
         queue.put(0.7)
+
 
 # =========================================
 # ✅ PROCESS SIGNAL
 # =========================================
 def process_timeframe(symbol, timeframe, table_name):
-
     global last_run_time
     last_run_time = time.time()
 
     df = get_data(symbol, timeframe, 40)
     if df.empty:
-        print(f"⚠️ No data for {symbol} {timeframe}")
         return False
 
     latest = float(df.iloc[0]['close'])
-    avg = float(df['close'].mean())
-
-    if avg == 0:
-        avg = latest
+    avg = float(df['close'].mean()) or latest
 
     signal_type = "LONG" if latest > avg else "SHORT"
     confidence = calculate_confidence(latest, avg)
     delta = abs(latest - avg)
 
-   # ✅ SAFE AI EXECUTION (PROCESS BASED)
+    # ✅ AI SAFE EXECUTION
     queue = multiprocessing.Queue()
-
     p = multiprocessing.Process(
         target=run_ai,
         args=(queue, symbol, timeframe, signal_type, confidence, delta)
@@ -85,7 +88,7 @@ def process_timeframe(symbol, timeframe, table_name):
     p.join(timeout=2)
 
     if p.is_alive():
-        print(f"⚠️ AI HARD TIMEOUT → {symbol} {timeframe}")
+        print(f"⚠️ AI TIMEOUT → {symbol} {timeframe}")
         p.terminate()
         p.join()
         ai_probability = 0.7
@@ -99,10 +102,24 @@ def process_timeframe(symbol, timeframe, table_name):
 
     print(f"{symbol} {timeframe} | Conf={confidence} | AI={ai_probability}")
 
+    # ✅ FILTER
     if confidence < 60 or ai_probability < 0.7:
-        print(f"❌ Skipped {symbol} {timeframe} (weak signal)")
         return False
 
+    # ✅ LIMIT TRADES
+    open_trades = get_open_trades()
+
+    if len(open_trades) > 20:
+        print("⚠️ Too many trades")
+        return False
+
+    # ✅ PREVENT DUPLICATES
+    for t in open_trades:
+        if t[1] == symbol:
+            print(f"⚠️ Trade exists: {symbol}")
+            return False
+
+    # ✅ CREATE TRADE
     create_paper_trade(symbol, signal_type, latest, confidence, timeframe)
 
     send_signal(f"""
@@ -113,13 +130,13 @@ Timeframe: {timeframe}
 Direction: {signal_type}
 
 Confidence: {confidence}%
-AI Probability: {round(ai_probability * 100, 2)}%
-
+AI: {round(ai_probability * 100, 2)}%
 Entry: {latest}
-Time: {time.strftime('%Y-%m-%d %H:%M:%S')}
+Time: {time.strftime('%H:%M:%S')}
 """)
 
     return True
+
 
 # =========================================
 # ✅ MONITOR TRADES
@@ -127,8 +144,7 @@ Time: {time.strftime('%Y-%m-%d %H:%M:%S')}
 def monitor_trades():
     try:
         trades = get_open_trades()
-    except Exception as e:
-        print("❌ Error loading trades:", e)
+    except:
         return
 
     for trade in trades:
@@ -137,6 +153,10 @@ def monitor_trades():
             pair = trade[1]
             side = trade[2]
             entry = float(trade[3])
+            status = trade[4]
+
+            if status == "CLOSED":
+                continue
 
             df = get_data(pair, "1m", 1)
             if df.empty:
@@ -165,53 +185,36 @@ Time: {time.strftime('%H:%M:%S')}
 """)
 
         except Exception as e:
-            print("❌ Error in trade loop:", e)
-            continue
+            print("Trade error:", e)
 
 
 # =========================================
-# ✅ MAIN BOT ENGINE
+# ✅ RUN BOT
 # =========================================
 def run_bots():
-    print(f"⏱ {time.strftime('%H:%M:%S')} still running")
     global last_run_time
     last_run_time = time.time()
 
     print("💓 BOT ALIVE")
 
-    signals_found = 0
-
     for symbol in SYMBOLS:
         try:
-            print(f"\n🔎 Scanning: {symbol}")
-
             for tf, table in [
                 ("1m", "signals_1m"),
                 ("5m", "signals_5m"),
-                ("15m", "signals_15m"),
-                ("30m", "signals_30m")
+                ("15m", "signals_15m")
             ]:
-
-                try:
-                    result = process_timeframe(symbol, tf, table)
-
-                    if result:
-                        signals_found += 1
-
-                except Exception as e:
-                    print(f"❌ Error in timeframe {tf}: {e}")
-                    continue
-
-            update_bot(symbol, "RUNNING", symbol, 0)
+                process_timeframe(symbol, tf, table)
 
         except Exception as e:
-            print(f"❌ Error in symbol {symbol}: {e}")
-            continue
+            print("Error:", e)
 
         time.sleep(0.3)
 
-    print(f"\n✅ {signals_found} SIGNAL(S) GENERATED")
 
+# =========================================
+# ✅ WATCHDOG
+# =========================================
 def watchdog():
     global last_run_time
 
@@ -219,5 +222,6 @@ def watchdog():
         time.sleep(10)
 
         if time.time() - last_run_time > 120:
-            print("⚠️ BOT STUCK — resetting safely")
+            print("⚠️ BOT RECOVERED")
             last_run_time = time.time()
+``
