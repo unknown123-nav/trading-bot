@@ -5,7 +5,7 @@ from db import update_bot, save_signal, create_paper_trade, get_open_trades, clo
 from config import SYMBOLS
 from ai_engine import predict_trade
 import threading
-
+import multiprocessing
 global last_run_time
 last_run_time = time.time()
 
@@ -34,6 +34,21 @@ def send_signal(message):
 def calculate_confidence(current, average):
     pct = abs((current - average) / average) * 100
     return max(50, min(round(50 + (pct * 10), 2), 99))
+    
+def run_ai(queue, symbol, timeframe, signal_type, confidence, delta):
+    try:
+        result = predict_trade(
+            symbol,
+            timeframe,
+            signal_type,
+            confidence,
+            delta,
+            confidence,
+            0
+        )
+        queue.put(result)
+    except:
+        queue.put(0.7)
 
 # =========================================
 # ✅ PROCESS SIGNAL
@@ -58,22 +73,27 @@ def process_timeframe(symbol, timeframe, table_name):
     confidence = calculate_confidence(latest, avg)
     delta = abs(latest - avg)
 
-    # ✅ SAFE AI CALL WITH TIMEOUT
-    try:
+   # ✅ SAFE AI EXECUTION (PROCESS BASED)
+    queue = multiprocessing.Queue()
 
-        ai_probability = predict_trade(
-            symbol,
-            timeframe,
-            signal_type,
-            confidence,
-            delta,
-            confidence,
-            0
-        )
+    p = multiprocessing.Process(
+        target=run_ai,
+        args=(queue, symbol, timeframe, signal_type, confidence, delta)
+    )
 
-    except Exception as e:
-        print("⚠️ AI timeout or error:", e)
+    p.start()
+    p.join(timeout=2)
+
+    if p.is_alive():
+        print(f"⚠️ AI HARD TIMEOUT → {symbol} {timeframe}")
+        p.terminate()
+        p.join()
         ai_probability = 0.7
+    else:
+        try:
+            ai_probability = queue.get_nowait()
+        except:
+            ai_probability = 0.7
 
     save_signal(table_name, symbol, signal_type, confidence, latest)
 
