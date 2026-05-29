@@ -166,9 +166,12 @@ def run_bots():
             print(f"\n🔎 Scanning: {symbol}")
 
             for tf, table in [
+                ("1m", "signals_1m"),
                 ("5m", "signals_5m"),
-                ("15m", "signals_15m")
+                ("15m", "signals_15m"),
+                ("30m", "signals_30m")
             ]:
+
                 try:
                     result = process_timeframe(symbol, tf, table)
 
