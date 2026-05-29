@@ -149,6 +149,11 @@ def monitor_trades():
 
     for trade in trades:
         try:
+            # ✅ PROTECT AGAINST BAD ROWS
+            if len(trade) < 4:
+                print("⚠️ Skipping bad trade row:", trade)
+                continue
+
             trade_id = trade[0]
             pair = trade[1]
             side = trade[2]
