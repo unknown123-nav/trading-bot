@@ -13,7 +13,7 @@ last_run_time = time.time()
 # ✅ TELEGRAM SIGNAL SENDER
 # =========================================
 def send_signal(message):
-    token = "8864549600:AAHPKnzLQknUwQv9y1kWIyU-TSP6WmdVXTA"
+    token = "8864549600:AAHaY2Q84VpkDBhYH6J0X4SNzpj-DLvGM_k"
     chat_id = "-5211298112"
 
     try:
