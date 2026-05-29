@@ -149,8 +149,8 @@ def monitor_trades():
 
     for trade in trades:
         try:
-            # ✅ PROTECT AGAINST BAD ROWS
-            if len(trade) < 4:
+            # ✅ FULL SAFETY CHECK
+            if not trade or len(trade) < 4:
                 print("⚠️ Skipping bad trade row:", trade)
                 continue
 
@@ -188,6 +188,7 @@ Time: {time.strftime('%H:%M:%S')}
         except Exception as e:
             print("Trade error:", e)
             continue
+
 
 # =========================================
 # ✅ RUN BOT
