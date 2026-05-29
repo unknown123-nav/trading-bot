@@ -153,10 +153,6 @@ def monitor_trades():
             pair = trade[1]
             side = trade[2]
             entry = float(trade[3])
-            status = trade[4]
-
-            if status == "CLOSED":
-                continue
 
             df = get_data(pair, "1m", 1)
             if df.empty:
@@ -170,7 +166,7 @@ def monitor_trades():
                 else (entry - current) / entry * 100
             )
 
-            pnl = round(pnl, 2)
+            pnl = round(pnl, 4)
 
             if pnl >= 2 or pnl <= -2:
                 close_trade(trade_id, current, pnl)
@@ -186,7 +182,7 @@ Time: {time.strftime('%H:%M:%S')}
 
         except Exception as e:
             print("Trade error:", e)
-
+            continue
 
 # =========================================
 # ✅ RUN BOT
