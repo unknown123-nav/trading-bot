@@ -74,17 +74,19 @@ def safe_assistant():
     except Exception as e:
         print("❌ Assistant crashed:", e)
 
-print("MAIN STARTED")
+print("✅ MAIN STARTED")
 
-# ✅ START FLASK
-threading.Thread(target=start_flask, daemon=True).start()
-
-time.sleep(3)
-
-# ✅ START BOT THREADS
+# ✅ START BOT THREADS FIRST
 threading.Thread(target=safe_trading, daemon=True).start()
 threading.Thread(target=safe_assistant, daemon=True).start()
 
-# ✅ KEEP MAIN THREAD ALIVE
-while True:
-    time.sleep(60)
+# ✅ small delay (optional but helpful)
+time.sleep(2)
+
+# ✅ RUN FLASK IN MAIN THREAD (IMPORTANT)
+app.run(
+    host="0.0.0.0",
+    port=int(os.environ.get("PORT", 10000)),
+    debug=False,
+    threaded=True
+)
