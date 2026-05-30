@@ -10,6 +10,7 @@ from db import (
 )
 from config import SYMBOLS
 
+print("✅ bot_engine FILE LOADED")
 
 # ✅ GLOBALS
 daily_signals_count = 0
