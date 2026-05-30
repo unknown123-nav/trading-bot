@@ -28,8 +28,8 @@ def save_signal(
     signal_type,
     confidence,
     price,
-    volatility,
-    candle_pattern=None
+    candle_pattern,
+    volatility
 ):
     conn = get_connection()
     cursor = conn.cursor()
