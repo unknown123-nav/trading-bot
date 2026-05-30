@@ -118,13 +118,24 @@ def process_timeframe(symbol, timeframe, table_name):
 
     # ✅ VOLATILITY
     volatility = abs(latest - avg) / avg * 100
-    if volatility < 0.55:
-        print(f"❌ Skipped {symbol} {timeframe} (low volatility {volatility:.2f}%)")
-        return
-
+    
 
     # ✅ CONFIDENCE (MIN 55 NOW ✅)
     confidence = max(55, min(55 + (volatility * 10), 99))
+
+    print(f"DEBUG → {symbol} {timeframe} | vol={volatility:.2f} conf={confidence:.2f}")
+    
+# 🔥 AUTO CHANNEL (5m, 15m)
+    if timeframe in ["5m", "15m"]:
+        if volatility < 0.55 or confidence < 60:
+            print(f"❌ Skipped AUTO {symbol} {timeframe} | vol={volatility:.2f} conf={confidence:.2f}")
+            return
+
+# 🎯 MANUAL CHANNEL (30m, 1H)
+    else:
+        if volatility < 0.75 or confidence < 60:
+            print(f"❌ Skipped MANUAL {symbol} {timeframe} | vol={volatility:.2f} conf={confidence:.2f}")
+            return
 
     # ✅ CANDLE PATTERN
     candle_pattern = detect_candle_pattern(df)
