@@ -56,17 +56,25 @@ def trading_loop():
 # =========================================
 if __name__ == "__main__":
 
-    # ✅ START THREADS AFTER SMALL DELAY
-    def start_background():
-        time.sleep(2)  # give Flask time to bind port
+    # ✅ START FLASK IMMEDIATELY
+    def start_flask():
+        app.run(
+            host="0.0.0.0",
+            port=int(os.environ.get("PORT", 10000)),
+            debug=False,
+            threaded=True
+        )
 
-        threading.Thread(target=assistant_loop, daemon=True).start()
-        threading.Thread(target=trading_loop, daemon=True).start()
+    # ✅ RUN FLASK FIRST (CRITICAL)
+    threading.Thread(target=start_flask).start()
 
-    threading.Thread(target=start_background).start()
+    # ✅ DELAY HEAVY STUFF
+    time.sleep(3)
 
-    # ✅ START FLASK FIRST (VERY IMPORTANT)
-    app.run(
-        host="0.0.0.0",
-        port=int(os.environ.get("PORT", 10000))
-    )
+    # ✅ THEN START YOUR BOT
+    threading.Thread(target=assistant_loop, daemon=True).start()
+    threading.Thread(target=trading_loop, daemon=True).start()
+
+    # ✅ KEEP MAIN THREAD ALIVE
+    while True:
+        time.sleep(60)
