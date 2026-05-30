@@ -170,6 +170,8 @@ Time: {time.strftime('%H:%M:%S')}
     # ✅ SEND
     send_signal(message, timeframe)
 
+    print(f"Trying to save signal: {symbol} {timeframe}")
+
     # ✅ SAVE (✅ FIXED ARGUMENTS)
     save_signal(
         table_name,
