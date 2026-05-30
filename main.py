@@ -34,17 +34,24 @@ def assistant_loop():
 # ✅ TRADING LOOP (SAFE)
 # =========================================
 def trading_loop():
-    print("🚀 Trading Engine Started")  # ✅ ADD THIS
+    print("🚀 Trading Engine Started")
 
-    from bot_engine import run_bot, monitor_trades
+    # ✅ SAFE IMPORT (VERY IMPORTANT)
+    try:
+        from bot_engine import run_bot, monitor_trades
+    except Exception as e:
+        print("❌ Import failed:", e)
+        return
 
     while True:
         try:
-            print("🔁 Running trading cycle")  # ✅ ADD THIS
+            print("🔁 Running trading cycle")
+
             run_bot()
             monitor_trades()
+
         except Exception as e:
-            print("Trading Error:", e)
+            print("❌ Trading Error:", e)
 
         time.sleep(300)
 # =========================================
