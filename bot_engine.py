@@ -239,12 +239,3 @@ def run_bot():
             print("Error:", e)
 
         time.sleep(2)
-
-
-# =========================================
-# ✅ MAIN LOOP
-# =========================================
-while True:
-    run_bot()
-    monitor_trades()
-    time.sleep(300)
