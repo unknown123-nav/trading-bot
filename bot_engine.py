@@ -5,9 +5,11 @@ from market import get_data
 from db import (
     create_paper_trade,
     get_open_trades,
-    close_trade
+    close_trade,
+    save_signal
 )
 from config import SYMBOLS
+
 
 # ✅ GLOBALS
 daily_signals_count = 0
@@ -15,11 +17,27 @@ last_reset_day = time.strftime("%Y-%m-%d")
 
 
 # =========================================
-# ✅ TELEGRAM
+# ✅ TELEGRAM CONFIG
 # =========================================
-def send_signal(message):
-    token = "8864549600:AAHaY2Q84VpkDBhYH6J0X4SNzpj-DLvGM_k"
-    chat_id = "-5211298112"
+AUTO_TOKEN = "8864549600:AAHaY2Q84VpkDBhYH6J0X4SNzpj-DLvGM_k"
+AUTO_CHAT_ID = "-5211298112"
+
+MANUAL_TOKEN = "8429745559:AAEK3E7-ihSMdNNlv8SH3GlKTFsuYxG45rA"
+MANUAL_CHAT_ID = "-5256385319"
+
+
+# =========================================
+# ✅ TELEGRAM SENDER
+# =========================================
+def send_signal(message, timeframe):
+
+    if timeframe in ["5m", "15m"]:
+        token = AUTO_TOKEN
+        chat_id = AUTO_CHAT_ID
+    else:
+        token = MANUAL_TOKEN
+        chat_id = MANUAL_CHAT_ID
+
     try:
         requests.post(
             f"https://api.telegram.org/bot{token}/sendMessage",
@@ -31,9 +49,60 @@ def send_signal(message):
 
 
 # =========================================
+# ✅ CANDLE PATTERN DETECTION
+# =========================================
+def detect_candle_pattern(df):
+    try:
+        if len(df) < 2:
+            return "UNKNOWN"
+
+        last = df.iloc[0]
+        prev = df.iloc[1]
+
+        open_ = float(last['open'])
+        close = float(last['close'])
+        high = float(last['high'])
+        low = float(last['low'])
+
+        prev_open = float(prev['open'])
+        prev_close = float(prev['close'])
+
+        body = abs(close - open_)
+        candle_range = high - low
+
+        # ✅ DOJI
+        if body < (candle_range * 0.1):
+            return "DOJI"
+
+        # ✅ BULLISH ENGULFING
+        if close > open_ and prev_close < prev_open:
+            if close > prev_open and open_ < prev_close:
+                return "BULLISH ENGULFING"
+
+        # ✅ BEARISH ENGULFING
+        if close < open_ and prev_close > prev_open:
+            if open_ > prev_close and close < prev_open:
+                return "BEARISH ENGULFING"
+
+        # ✅ PIN BAR
+        upper_wick = high - max(open_, close)
+        lower_wick = min(open_, close) - low
+
+        if upper_wick > body * 2:
+            return "BEARISH PIN BAR"
+        if lower_wick > body * 2:
+            return "BULLISH PIN BAR"
+
+        return "NORMAL"
+
+    except:
+        return "UNKNOWN"
+
+
+# =========================================
 # ✅ PROCESS SIGNAL
 # =========================================
-def process_timeframe(symbol, timeframe):
+def process_timeframe(symbol, timeframe, table_name):
 
     global daily_signals_count, last_reset_day
 
@@ -56,15 +125,23 @@ def process_timeframe(symbol, timeframe):
 
     signal_type = "LONG" if latest > avg else "SHORT"
 
-    # ✅ SIMPLE FILTER
+    # ✅ VOLATILITY
     volatility = abs(latest - avg) / avg * 100
-
     if volatility < 0.5:
+        return
+
+    # ✅ CONFIDENCE (MIN 55 NOW ✅)
+    confidence = max(55, min(55 + (volatility * 10), 99))
+
+    # ✅ CANDLE PATTERN
+    candle_pattern = detect_candle_pattern(df)
+
+    # ✅ OPTIONAL FILTER (recommended)
+    if candle_pattern == "DOJI":
         return
 
     # ✅ CHECK EXISTING TRADES
     open_trades = get_open_trades()
-
     for t in open_trades:
         if t[1] == symbol:
             return
@@ -72,28 +149,43 @@ def process_timeframe(symbol, timeframe):
     # ✅ CREATE TRADE
     create_paper_trade(symbol, signal_type, latest, 0, timeframe)
 
-    # ✅ FORMAT MESSAGE (TEACHER STYLE)
+    # ✅ MESSAGE
     direction = "UP" if signal_type == "LONG" else "DOWN"
 
-    send_signal(f"""
+    message = f"""
 📊 TRADE SIGNAL
 
 Pair: {symbol}
 Direction: {direction}
 Entry: {latest}
+Pattern: {candle_pattern}
+Confidence: {round(confidence)}%
 Volatility: {round(volatility, 2)}%
 
 Timeframe: {timeframe}
 Date: {time.strftime('%d-%m-%Y')}
 Time: {time.strftime('%H:%M:%S')}
-""")
+"""
 
+    # ✅ SEND
+    send_signal(message, timeframe)
+
+    # ✅ SAVE (✅ FIXED ARGUMENTS)
+    save_signal(
+        table_name,
+        symbol,
+        signal_type,
+        confidence,
+        latest,
+        candle_pattern,
+        volatility
+    )
 
     daily_signals_count += 1
 
 
 # =========================================
-# ✅ MONITOR TRADES (ONLY CLOSE)
+# ✅ MONITOR TRADES
 # =========================================
 def monitor_trades():
     trades = get_open_trades()
@@ -120,7 +212,7 @@ def monitor_trades():
             if pnl >= 2 or pnl <= -2:
                 close_trade(trade_id, current, round(pnl, 2))
 
-        except:
+        except Exception:
             continue
 
 
@@ -133,8 +225,13 @@ def run_bot():
 
     for symbol in SYMBOLS:
         try:
-           for tf in ["5m", "15m"]:
-               process_timeframe(symbol, tf)
+            for tf, table in [
+                ("5m", "signals_5M"),
+                ("15m", "signals_15M"),
+                ("30m", "signals_30M"),
+                ("1H", "signals_1H")
+            ]:
+                process_timeframe(symbol, tf, table)
 
         except Exception as e:
             print("Error:", e)
@@ -148,4 +245,4 @@ def run_bot():
 while True:
     run_bot()
     monitor_trades()
-    time.sleep(300)   # ✅ every 5 minutes
+    time.sleep(300)
