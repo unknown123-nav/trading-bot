@@ -50,27 +50,41 @@ def trading_loop():
 # =========================================
 # ✅ START THREADS
 # =========================================
-if __name__ == "__main__":
+# ✅ START FLASK
+def start_flask():
+    app.run(
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", 10000)),
+        debug=False,
+        threaded=True
+    )
 
-    # ✅ START FLASK IMMEDIATELY
-    def start_flask():
-        app.run(
-            host="0.0.0.0",
-            port=int(os.environ.get("PORT", 10000)),
-            debug=False,
-            threaded=True
-        )
 
-    # ✅ RUN FLASK FIRST (CRITICAL)
-    threading.Thread(target=start_flask).start()
+# ✅ SAFE THREADS
+def safe_trading():
+    try:
+        trading_loop()
+    except Exception as e:
+        print("❌ Trading crashed:", e)
 
-    # ✅ DELAY HEAVY STUFF
-    time.sleep(3)
 
-    # ✅ THEN START YOUR BOT
-    threading.Thread(target=assistant_loop, daemon=True).start()
-    threading.Thread(target=trading_loop, daemon=True).start()
+def safe_assistant():
+    try:
+        assistant_loop()
+    except Exception as e:
+        print("❌ Assistant crashed:", e)
 
-    # ✅ KEEP MAIN THREAD ALIVE
-    while True:
-        time.sleep(60)
+print("MAIN STARTED")
+
+# ✅ START FLASK
+threading.Thread(target=start_flask, daemon=True).start()
+
+time.sleep(3)
+
+# ✅ START BOT THREADS
+threading.Thread(target=safe_trading, daemon=True).start()
+threading.Thread(target=safe_assistant, daemon=True).start()
+
+# ✅ KEEP MAIN THREAD ALIVE
+while True:
+    time.sleep(60)
