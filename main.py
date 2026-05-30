@@ -85,12 +85,23 @@ def safe_assistant():
 print("✅ MAIN STARTED")
 
 # ✅ START BOT THREADS FIRST
-threading.Thread(target=safe_trading, daemon=True).start()
-threading.Thread(target=safe_assistant, daemon=True).start()
+threading.Thread(target=safe_trading).start()
+threading.Thread(target=safe_assistant).start()
 
 # ✅ small delay (optional but helpful)
 time.sleep(2)
 
+# ✅ FORCE ONE RUN (VERY IMPORTANT)
+try:
+    from bot_engine import run_bot, monitor_trades
+    print("✅ bot_engine imported (main)")
+
+    print("⚡ FIRST RUN FROM MAIN")
+    run_bot()
+    monitor_trades()
+
+except Exception as e:
+    print("❌ First run failed:", e)
 # ✅ RUN FLASK IN MAIN THREAD (IMPORTANT)
 app.run(
     host="0.0.0.0",
