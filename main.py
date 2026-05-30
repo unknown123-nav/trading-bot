@@ -4,8 +4,6 @@ import time
 import requests
 
 from flask import Flask
-from bot_engine import run_bot, monitor_trades
-from telegram import check_replies
 
 # =========================================
 # ✅ FLASK (FOR RENDER)
@@ -23,6 +21,8 @@ def home():
 def assistant_loop():
     print("🤖 Assistant Started")
 
+    from telegram import check_replies
+
     while True:
         try:
             check_replies()
@@ -30,27 +30,24 @@ def assistant_loop():
             print("Assistant Error:", e)
 
         time.sleep(2)
-
-
 # =========================================
 # ✅ TRADING LOOP (SAFE)
 # =========================================
 def trading_loop():
     print("🚀 Trading Engine Started")
 
+    # ✅ import ONLY when needed (after Flask starts)
+    from bot_engine import run_bot, monitor_trades
+
     while True:
         try:
             print("🔁 Running trading cycle")
-
             run_bot()
             monitor_trades()
-
         except Exception as e:
             print("Trading Error:", e)
 
-        time.sleep(300)   # ✅ every 5 minutes
-
-
+        time.sleep(300)
 # =========================================
 # ✅ START THREADS
 # =========================================
