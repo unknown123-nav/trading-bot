@@ -9,9 +9,6 @@ DB_CONFIG = {
 SYMBOLS = [
     "BTC-USDT",
     "ETH-USDT",
-    "SOL-USDT",
-    "XRP-USDT",
-    "ADA-USDT",
-    "DOGE-USDT"
+    "SOL-USDT"
 ]
 
