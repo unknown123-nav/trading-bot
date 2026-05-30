@@ -34,14 +34,13 @@ def assistant_loop():
 # ✅ TRADING LOOP (SAFE)
 # =========================================
 def trading_loop():
-    print("🚀 Trading Engine Started")
+    print("🚀 Trading Engine Started")  # ✅ ADD THIS
 
-    # ✅ import ONLY when needed (after Flask starts)
     from bot_engine import run_bot, monitor_trades
 
     while True:
         try:
-            print("🔁 Running trading cycle")
+            print("🔁 Running trading cycle")  # ✅ ADD THIS
             run_bot()
             monitor_trades()
         except Exception as e:
