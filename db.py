@@ -18,16 +18,20 @@ def get_connection():
 # SAVE SIGNAL
 # =========================================
 
+# =========================================
+# ✅ SAVE SIGNAL (UPDATED)
+# =========================================
+
 def save_signal(
     table,
     pair,
     signal_type,
     confidence,
-    price
+    price,
+    volatility,
+    candle_pattern=None
 ):
-
     conn = get_connection()
-
     cursor = conn.cursor()
 
     try:
@@ -39,31 +43,31 @@ def save_signal(
             signal_type,
             confidence,
             entry_price,
+            candle_pattern,
+            volatility,
             created_at
         )
-        VALUES (%s, %s, %s, %s, NOW())
+        VALUES (%s, %s, %s, %s, %s, %s, NOW())
         """
 
         cursor.execute(query, (
             pair,
             signal_type,
             confidence,
-            price
+            price,
+            candle_pattern,
+            volatility
         ))
 
         conn.commit()
 
-    except Exception as e:
+        print(f"✅ Saved signal → {table} | {pair}")
 
-        print(
-            "Signal save error:",
-            e
-        )
+    except Exception as e:
+        print("❌ Signal save error:", e)
 
     finally:
-
         cursor.close()
-
         conn.close()
 
 
