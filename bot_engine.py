@@ -118,8 +118,10 @@ def process_timeframe(symbol, timeframe, table_name):
 
     # ✅ VOLATILITY
     volatility = abs(latest - avg) / avg * 100
-    if volatility < 0.45:
+    if volatility < 0.55:
+        print(f"❌ Skipped {symbol} {timeframe} (low volatility {volatility:.2f}%)")
         return
+
 
     # ✅ CONFIDENCE (MIN 55 NOW ✅)
     confidence = max(55, min(55 + (volatility * 10), 99))
@@ -193,7 +195,7 @@ def monitor_trades():
                 else (entry - current) / entry * 100
             )
 
-            if pnl >= 2 or pnl <= -2:
+            if pnl >= 1 or pnl <= -1:
                 close_trade(trade_id, current, round(pnl, 2))
 
         except Exception:
