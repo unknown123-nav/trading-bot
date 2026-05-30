@@ -118,6 +118,8 @@ def process_timeframe(symbol, timeframe, table_name):
 
     # ✅ VOLATILITY
     volatility = abs(latest - avg) / avg * 100
+    if volatility < 0.45:
+        return
 
     # ✅ CONFIDENCE (MIN 55 NOW ✅)
     confidence = max(55, min(55 + (volatility * 10), 99))
