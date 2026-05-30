@@ -127,19 +127,14 @@ def monitor_trades():
 # =========================================
 # ✅ RUN BOT
 # =========================================
-def run_bots():
-    global last_run_time
-    last_run_time = time.time()
+def run_bot():
 
     print("💓 BOT ALIVE")
 
     for symbol in SYMBOLS:
         try:
-            for tf, table in [
-                ("5m", "signals_5m"),
-                ("15m", "signals_15m")
-            ]:
-                process_timeframe(symbol, tf, table)
+           for tf in ["5m", "15m"]:
+               process_timeframe(symbol, tf)
 
         except Exception as e:
             print("Error:", e)
