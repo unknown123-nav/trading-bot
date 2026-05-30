@@ -20,10 +20,8 @@ last_reset_day = time.strftime("%Y-%m-%d")
 # =========================================
 # ✅ TELEGRAM CONFIG
 # =========================================
-AUTO_TOKEN = "8864549600:AAHaY2Q84VpkDBhYH6J0X4SNzpj-DLvGM_k"
+TELEGRAM_TOKEN = "8864549600:AAHaY2Q84VpkDBhYH6J0X4SNzpj-DLvGM_k"
 AUTO_CHAT_ID = "-5211298112"
-
-MANUAL_TOKEN = "8429745559:AAEK3E7-ihSMdNNlv8SH3GlKTFsuYxG45rA"
 MANUAL_CHAT_ID = "-5287950499"
 
 
@@ -32,23 +30,19 @@ MANUAL_CHAT_ID = "-5287950499"
 # =========================================
 def send_signal(message, timeframe):
 
+    # ✅ ROUTE BY TIMEFRAME
     if timeframe in ["5m", "15m"]:
-        token = AUTO_TOKEN
         chat_id = AUTO_CHAT_ID
     else:
-        token = MANUAL_TOKEN
         chat_id = MANUAL_CHAT_ID
 
     try:
         requests.post(
-            f"https://api.telegram.org/bot{token}/sendMessage",
+            f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
             json={"chat_id": chat_id, "text": message},
-            timeout=3
         )
     except Exception as e:
         print("Signal error:", e)
-
-
 # =========================================
 # ✅ CANDLE PATTERN DETECTION
 # =========================================
@@ -113,10 +107,6 @@ def process_timeframe(symbol, timeframe, table_name):
         daily_signals_count = 0
         last_reset_day = today
 
-    # ✅ LIMIT SIGNALS
-    if daily_signals_count >= 20:
-        return
-
     df = get_data(symbol, timeframe, 40)
     if df.empty:
         return
@@ -128,8 +118,6 @@ def process_timeframe(symbol, timeframe, table_name):
 
     # ✅ VOLATILITY
     volatility = abs(latest - avg) / avg * 100
-    if volatility < 0.2:
-        return
 
     # ✅ CONFIDENCE (MIN 55 NOW ✅)
     confidence = max(55, min(55 + (volatility * 10), 99))
@@ -137,15 +125,6 @@ def process_timeframe(symbol, timeframe, table_name):
     # ✅ CANDLE PATTERN
     candle_pattern = detect_candle_pattern(df)
 
-    # ✅ OPTIONAL FILTER (recommended)
-    if candle_pattern == "DOJI":
-        return
-
-    # ✅ CHECK EXISTING TRADES
-    open_trades = get_open_trades()
-    for t in open_trades:
-        if t[1] == symbol:
-            return
 
     # ✅ CREATE TRADE
     create_paper_trade(symbol, signal_type, latest, 0, timeframe)
@@ -239,4 +218,4 @@ def run_bot():
         except Exception as e:
             print("Error:", e)
 
-        time.sleep(2)
+        time.sleep(1)
