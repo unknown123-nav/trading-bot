@@ -56,10 +56,16 @@ def trading_loop():
 # =========================================
 if __name__ == "__main__":
 
-    threading.Thread(target=assistant_loop, daemon=True).start()
-    threading.Thread(target=trading_loop, daemon=True).start()
+    # ✅ START THREADS AFTER SMALL DELAY
+    def start_background():
+        time.sleep(2)  # give Flask time to bind port
 
-    # ✅ ONLY ONE RUN (IMPORTANT)
+        threading.Thread(target=assistant_loop, daemon=True).start()
+        threading.Thread(target=trading_loop, daemon=True).start()
+
+    threading.Thread(target=start_background).start()
+
+    # ✅ START FLASK FIRST (VERY IMPORTANT)
     app.run(
         host="0.0.0.0",
         port=int(os.environ.get("PORT", 10000))
