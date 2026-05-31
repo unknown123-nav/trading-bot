@@ -80,24 +80,23 @@ def check_replies():
 
             if "help" in text:
                 reply = (
-                    "📚 *KRYPTRA AI COMMAND CENTER*\n\n"
-                    "✅ status → System health\n"
-                    "✅ signals → Latest AI signals\n"
-                    "✅ trades → Active trades\n"
-                    "✅ pnl → Performance report\n"
-                    "✅ ping → Check latency\n"
-                    "✅ ai → AI system info\n\n"
-                    "🤖 Fully automated cloud trading engine"
+                    "Hey! Here's what I can do:\n\n"
+                    "• status — check if everything's running\n"
+                    "• signals — see the latest trade signals\n"
+                    "• trades — view your active trades\n"
+                    "• pnl — check your performance\n"
+                   "• ping — test connection speed\n"
+                   "• ai — info about the AI model\n\n"
+                   "Just type any command to get started."
                 )
-
             elif "status" in text:
                 reply = (
-                    "🟢 *SYSTEM STATUS*\n\n"
-                    "✅ AI Engine: ACTIVE\n"
-                    "✅ Trading Bots: RUNNING\n"
-                    "✅ Database: CONNECTED\n"
-                    "✅ Cloud: ONLINE\n\n"
-                    "🚀 All systems operational"
+                    "All good on my end 👍\n\n"
+                    "• AI Engine: running\n"
+                    "• Trading bots: active\n"
+                    "• Database: connected\n"
+                    "• Cloud: online\n\n"
+                    "Everything looks healthy."
                 )
 
             elif "signal" in text:
