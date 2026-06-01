@@ -103,3 +103,34 @@ def predict_trade(
         print("AI Prediction Error:", e)
 
         return 0
+
+def predict_signal(df, pair="BTC-USDT", timeframe="5m"):
+    try:
+        last = df.iloc[0]
+        prev = df.iloc[1]
+
+        delta = float(last['close']) - float(prev['close'])
+
+        direction = "UP" if delta > 0 else "DOWN"
+
+        #  REALISTIC FEATURES
+        confidence_input = abs(delta)  # movement strength
+        percentile = abs(delta) / float(prev['close'])  # normalized movement
+
+        probability = predict_trade(
+            pair=pair,
+            timeframe=timeframe,
+            direction="LONG" if direction == "UP" else "SHORT",
+            confidence=confidence_input,
+            delta=delta,
+            percentile=percentile,
+            pnl=0
+        )
+
+        confidence = int(probability * 100)
+
+        return direction, confidence
+
+    except Exception as e:
+        print("AI Signal Error:", e)
+        return "DOWN", 0
