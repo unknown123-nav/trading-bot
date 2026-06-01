@@ -9,12 +9,14 @@ from db import (
     save_signal
 )
 from config import SYMBOLS
+from ai_engine import predict_signal
 
-print("✅ bot_engine FILE LOADED")
+print(" bot_engine FILE LOADED")
 
 # ✅ GLOBALS
 daily_signals_count = 0
 last_reset_day = time.strftime("%Y-%m-%d")
+last_signal_time = {}
 
 
 # =========================================
@@ -30,19 +32,16 @@ MANUAL_CHAT_ID = "-5287950499"
 # =========================================
 def send_signal(message, timeframe):
 
-    # ✅ ROUTE BY TIMEFRAME
     if timeframe in ["5m", "15m"]:
         chat_id = AUTO_CHAT_ID
     else:
         chat_id = MANUAL_CHAT_ID
 
-    try:
-        requests.post(
-            f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
-            json={"chat_id": chat_id, "text": message},
-        )
-    except Exception as e:
-        print("Signal error:", e)
+    requests.post(
+        f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
+        json={"chat_id": chat_id, "text": message},
+    )
+
 # =========================================
 # ✅ CANDLE PATTERN DETECTION
 # =========================================
@@ -65,21 +64,21 @@ def detect_candle_pattern(df):
         body = abs(close - open_)
         candle_range = high - low
 
-        # ✅ DOJI
+        #  DOJI
         if body < (candle_range * 0.1):
             return "DOJI"
 
-        # ✅ BULLISH ENGULFING
+        #  BULLISH ENGULFING
         if close > open_ and prev_close < prev_open:
             if close > prev_open and open_ < prev_close:
                 return "BULLISH ENGULFING"
 
-        # ✅ BEARISH ENGULFING
+        #  BEARISH ENGULFING
         if close < open_ and prev_close > prev_open:
             if open_ > prev_close and close < prev_open:
                 return "BEARISH ENGULFING"
 
-        # ✅ PIN BAR
+        #  PIN BAR
         upper_wick = high - max(open_, close)
         lower_wick = min(open_, close) - low
 
@@ -95,13 +94,13 @@ def detect_candle_pattern(df):
 
 
 # =========================================
-# ✅ PROCESS SIGNAL
+#  PROCESS SIGNAL
 # =========================================
 def process_timeframe(symbol, timeframe, table_name):
 
     global daily_signals_count, last_reset_day
 
-    # ✅ RESET DAILY
+    #  RESET DAILY
     today = time.strftime("%Y-%m-%d")
     if today != last_reset_day:
         daily_signals_count = 0
@@ -116,35 +115,55 @@ def process_timeframe(symbol, timeframe, table_name):
 
     signal_type = "LONG" if latest > avg else "SHORT"
 
-    # ✅ VOLATILITY
+    #  VOLATILITY
     volatility = abs(latest - avg) / avg * 100
     
 
-    # ✅ CONFIDENCE (MIN 55 NOW ✅)
+    #  CONFIDENCE 
     confidence = max(55, min(55 + (volatility * 10), 99))
 
     print(f"DEBUG → {symbol} {timeframe} | vol={volatility:.2f} conf={confidence:.2f}")
     
-# 🔥 AUTO CHANNEL (5m, 15m)
-    if timeframe in ["5m", "15m"]:
-        if volatility < 0.55 or confidence < 60:
-            print(f"❌ Skipped AUTO {symbol} {timeframe} | vol={volatility:.2f} conf={confidence:.2f}")
-            return
+if timeframe in ["5m", "15m"]:
+    print(f"AI MODE ACTIVE → {symbol} {timeframe}")
+    
+if timeframe in ["5m", "15m"]:
+    direction, ai_confidence = predict_signal(df)
 
-# 🎯 MANUAL CHANNEL (30m, 1H)
+    print(f"AI → {symbol} {timeframe} | {direction} {ai_confidence}")
+
+    if ai_confidence < 70:
+        print(f"❌ AI rejected {symbol} {timeframe}")
+        return
+
+    signal_type = "LONG" if direction == "UP" else "SHORT"
+    confidence = ai_confidence
+#  MANUAL CHANNEL (30m, 1H)
     else:
-        if volatility < 0.75 or confidence < 60:
+        if volatility < 0.9 or confidence < 70:
             print(f"❌ Skipped MANUAL {symbol} {timeframe} | vol={volatility:.2f} conf={confidence:.2f}")
             return
 
-    # ✅ CANDLE PATTERN
+    #  CANDLE PATTERN
     candle_pattern = detect_candle_pattern(df)
 
 
-    # ✅ CREATE TRADE
-    create_paper_trade(symbol, signal_type, latest, 0, timeframe)
+    key = f"{symbol}_{timeframe}"
+    if key in last_signal_time:
+        if time.time() - last_signal_time[key] < 600:
+            return
+    open_trades = get_open_trades()
+    for t in open_trades:
+        if t[1] == symbol and t[4] == timeframe:
+            print(f"⛔ Already active {symbol} {timeframe}")
+            return
+            
+    last_signal_time[key] = time.time()
 
-    # ✅ MESSAGE
+    if timeframe in ["5m", "15m"]:
+        create_paper_trade(symbol, signal_type, latest, 0, timeframe)
+
+    #  MESSAGE
     direction = "UP" if signal_type == "LONG" else "DOWN"
 
     message = f"""
@@ -162,12 +181,12 @@ Date: {time.strftime('%d-%m-%Y')}
 Time: {time.strftime('%H:%M:%S')}
 """
 
-    # ✅ SEND
     send_signal(message, timeframe)
+    time.sleep(0.3)  
 
     print(f"Trying to save signal: {symbol} {timeframe}")
 
-    # ✅ SAVE (✅ FIXED ARGUMENTS)
+    # SAVE 
     save_signal(
         table_name,
         symbol,
@@ -182,7 +201,7 @@ Time: {time.strftime('%H:%M:%S')}
 
 
 # =========================================
-# ✅ MONITOR TRADES
+#  MONITOR TRADES
 # =========================================
 def monitor_trades():
     trades = get_open_trades()
@@ -214,7 +233,7 @@ def monitor_trades():
 
 
 # =========================================
-# ✅ RUN BOT
+#  RUN BOT
 # =========================================
 def run_bot():
 
