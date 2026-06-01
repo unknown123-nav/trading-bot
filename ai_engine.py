@@ -13,7 +13,6 @@ print("🧠 AI MODEL LOADED")
 # =========================================
 def predict_trade(pair, timeframe, direction, confidence, delta, percentile, pnl):
     try:
-
         pair_map = {
             "BTC-USDT": 0,
             "ETH-USDT": 1,
@@ -63,7 +62,6 @@ def predict_trade(pair, timeframe, direction, confidence, delta, percentile, pnl
 # =========================================
 def predict_signal(df, symbol, timeframe):
     try:
-
         if len(df) < 2:
             return "DOWN", 0
 
@@ -72,11 +70,14 @@ def predict_signal(df, symbol, timeframe):
 
         delta = float(last['close']) - float(prev['close'])
 
-        direction = "UP" if delta > 0 else "DOWN"
+        if delta > 0:
+            direction = "UP"
+        else:
+            direction = "DOWN"
 
         confidence_input = abs(delta)
 
-        if prev['close'] != 0:
+        if float(prev['close']) != 0:
             percentile = abs(delta) / float(prev['close'])
         else:
             percentile = 0
