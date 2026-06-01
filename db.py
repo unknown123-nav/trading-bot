@@ -358,7 +358,7 @@ def get_open_trades():
 
     try:
         cursor.execute("""
-            SELECT id, pair, side, entry_price, timeframe
+            SELECT id, pair, side, entry_price, timeframe, take_profit, stop_loss
             FROM paper_trades
             WHERE status = 'OPEN'
         """)
