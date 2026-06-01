@@ -18,42 +18,38 @@ def get_connection():
 #  SAVE SIGNAL (UPDATED)
 # =========================================
 
-def save_signal(
-    table,
-    pair,
-    signal_type,
-    confidence,
-    price,
-    candle_pattern,
-    volatility
-):
+def save_signal(table, pair, direction, confidence, entry, pattern, volatility, trade_source):
+
     conn = get_connection()
     cursor = conn.cursor()
 
     try:
 
         query = f"""
-        INSERT INTO {table}
-        (
-            pair_name,
-            signal_type,
-            confidence,
-            entry_price,
-            candle_pattern,
-            volatility,
-            created_at
-        )
-        VALUES (%s, %s, %s, %s, %s, %s, NOW())
+        INSERT INTO {table} (
+    pair,
+    direction,
+    confidence,
+    entry_price,
+    pattern,
+    volatility,
+    timeframe,
+    trade_source
+)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """
 
         cursor.execute(query, (
-            pair,
-            signal_type,
-            confidence,
-            price,
-            candle_pattern,
-            volatility
-        ))
+    pair,
+    direction,
+    confidence,
+    entry,
+    pattern,
+    volatility,
+    table.replace("signals_", ""),  # timeframe
+    trade_source
+))
+
 
         conn.commit()
 
@@ -136,163 +132,94 @@ def update_bot(
 # CREATE PAPER TRADE
 # =========================================
 
-def create_paper_trade(
-    pair,
-    side,
-    entry_price,
-    confidence,
-    timeframe
-):
+def create_paper_trade(symbol, side, entry, qty, timeframe, tp, sl):
 
     conn = get_connection()
-
     cursor = conn.cursor()
 
     try:
+        # ✅ CHECK DUPLICATE (per symbol + timeframe)
+        cursor.execute("""
+            SELECT id FROM paper_trades
+            WHERE pair = %s AND timeframe = %s AND status = 'OPEN'
+            LIMIT 1
+        """, (symbol, timeframe))
 
-        # =====================================
-        # CHECK EXISTING OPEN TRADE
-        # =====================================
-
-        check_query = """
-        SELECT id
-        FROM paper_trades
-        WHERE
-            pair = %s
-            AND timeframe = %s
-            AND status = 'OPEN'
-        LIMIT 1
-        """
-
-        cursor.execute(check_query, (
-            pair,
-            timeframe
-        ))
-
-        existing_trade = cursor.fetchone()
-
-        # =====================================
-        # SKIP DUPLICATE TRADE
-        # =====================================
-
-        if existing_trade:
-
-            print(
-                f"Trade already open: "
-                f"{pair} {timeframe}"
-            )
-
+        if cursor.fetchone():
+            print(f" Trade already open: {symbol} {timeframe}")
             return
 
-        # =====================================
-        # CREATE TRADE
-        # =====================================
-
-        query = """
-        INSERT INTO paper_trades
-        (
-            pair,
+        # ✅ INSERT TRADE
+        cursor.execute("""
+            INSERT INTO paper_trades (
+                pair,
+                side,
+                entry_price,
+                quantity,
+                timeframe,
+                take_profit,
+                stop_loss,
+                trade_source,
+                status,
+                created_at
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'OPEN', NOW())
+        """, (
+            symbol,
             side,
-            entry_price,
-            quantity,
-            leverage,
+            entry,
+            qty,
             timeframe,
-            ai_confidence,
-            trade_source,
-            status,
-            created_at
-        )
-        VALUES
-        (
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            NOW()
-        )
-        """
-
-        cursor.execute(query, (
-            pair,
-            side,
-            entry_price,
-            1,
-            1,
-            timeframe,
-            confidence,
-            "AI",
-            "OPEN"
+            tp,
+            sl,
+            "AI"
         ))
 
         conn.commit()
-
-        print(
-            f"Trade created: "
-            f"{pair} {side}"
-        )
+        print(f" Trade created → {symbol} {timeframe} | TP={tp} SL={sl}")
 
     except Exception as e:
-
-        print(
-            "Trade creation error:",
-            e
-        )
+        print("Trade creation error:", e)
 
     finally:
-
         cursor.close()
-
         conn.close()
 
 
 # =========================================
 # GET LATEST SIGNALS
 # =========================================
-
 def get_latest_signals():
 
     conn = get_connection()
-
     cursor = conn.cursor()
 
     try:
+        cursor.execute("""
+            SELECT pair, direction, confidence, timeframe, trade_source FROM signals_1M
+            UNION ALL
+            SELECT pair, direction, confidence, timeframe, trade_source FROM signals_3M
+            UNION ALL
+            SELECT pair, direction, confidence, timeframe, trade_source FROM signals_5M
+            UNION ALL
+            SELECT pair, direction, confidence, timeframe, trade_source FROM signals_15M
+            UNION ALL
+            SELECT pair, direction, confidence, timeframe, trade_source FROM signals_30M
+            UNION ALL
+            SELECT pair, direction, confidence, timeframe, trade_source FROM signals_1H
+            ORDER BY confidence DESC
+            LIMIT 10
+        """)
 
-        query = """
-        SELECT
-            pair_name,
-            signal_type,
-            confidence
-        FROM signals_1m
-        ORDER BY created_at DESC
-        LIMIT 5
-        """
-
-        cursor.execute(query)
-
-        rows = cursor.fetchall()
-
-        return rows
+        return cursor.fetchall()
 
     except Exception as e:
-
-        print(
-            "Signal fetch error:",
-            e
-        )
-
+        print("Signal fetch error:", e)
         return []
 
     finally:
-
         cursor.close()
-
         conn.close()
-
 
 # =========================================
 # GET ACTIVE TRADES
@@ -301,40 +228,25 @@ def get_latest_signals():
 def get_active_trades():
 
     conn = get_connection()
-
     cursor = conn.cursor()
 
     try:
-
-        query = """
-        SELECT pair, side
-        FROM paper_trades
-        WHERE status = 'OPEN'
-        ORDER BY created_at DESC
-        LIMIT 5
-        """
-
-        cursor.execute(query)
-
-        rows = cursor.fetchall()
-
-        return rows
+        cursor.execute("""
+            SELECT pair, side, timeframe
+            FROM paper_trades
+            WHERE status = 'OPEN'
+            ORDER BY created_at DESC
+            LIMIT 5
+        """)
+        return cursor.fetchall()
 
     except Exception as e:
-
-        print(
-            "Trade fetch error:",
-            e
-        )
-
+        print("Trade fetch error:", e)
         return []
 
     finally:
-
         cursor.close()
-
         conn.close()
-
 
 # =========================================
 # GET PNL REPORT
@@ -356,7 +268,7 @@ def get_pnl_report():
 
         cursor.execute("""
             SELECT COUNT(*)
-            FROM signals_1m
+            FROM signals_1M
         """)
 
         report["signals"] = cursor.fetchone()[0]
@@ -445,13 +357,11 @@ def get_open_trades():
     cursor = conn.cursor()
 
     try:
-        query = """
-        SELECT id, pair, side, entry_price
-        FROM paper_trades
-        WHERE status = 'OPEN'
-        """
-
-        cursor.execute(query)
+        cursor.execute("""
+            SELECT id, pair, side, entry_price, timeframe
+            FROM paper_trades
+            WHERE status = 'OPEN'
+        """)
         return cursor.fetchall()
 
     except Exception as e:
@@ -461,6 +371,7 @@ def get_open_trades():
     finally:
         cursor.close()
         conn.close()
+
 
 # =========================================
 # CLOSE TRADE
