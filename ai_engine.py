@@ -1,21 +1,16 @@
 import numpy as np
-
 from tensorflow.keras.models import load_model
 
 # =========================================
-# LOAD MODEL
+# ✅ LOAD MODEL
 # =========================================
+model = load_model("trading_ai_model.h5")
+print(" AI MODEL LOADED")
 
-model = load_model(
-    "trading_ai_model.h5"
-)
-
-print("🧠 AI MODEL LOADED")
 
 # =========================================
-# PREDICT CONTINUATION
+# ✅ PREDICT CORE (MODEL)
 # =========================================
-
 def predict_trade(
     pair,
     timeframe,
@@ -25,20 +20,13 @@ def predict_trade(
     percentile,
     pnl
 ):
-
     try:
 
-        # =====================================
-        # ENCODE VALUES
-        # =====================================
-
+        # ✅ ENCODING MAPS
         pair_map = {
             "BTC-USDT": 0,
             "ETH-USDT": 1,
-            "SOL-USDT": 2,
-            "XRP-USDT": 3,
-            "ADA-USDT": 4,
-            "DOGE-USDT": 5
+            "SOL-USDT": 2
         }
 
         timeframe_map = {
@@ -47,78 +35,66 @@ def predict_trade(
             "5m": 2,
             "15m": 3,
             "30m": 4,
-            "1h": 5
+            "1H": 5  # 
         }
 
-        direction_map = {
-            "LONG": 0,
-            "SHORT": 1
-        }
+       direction_map = {
+           "LONG": 0,
+           "SHORT": 1
+       }
 
-        # =====================================
-        # CONVERT
-        # =====================================
-
+        # ✅ ENCODE
         pair_encoded = pair_map.get(pair, 0)
-
         timeframe_encoded = timeframe_map.get(timeframe, 0)
-
         direction_encoded = direction_map.get(direction, 0)
 
-        # =====================================
-        # CREATE FEATURES
-        # =====================================
+        # ✅ FEATURE VECTOR
+        features = np.array([[
+            pair_encoded,
+            timeframe_encoded,
+            direction_encoded,
+            float(confidence),
+            float(delta),
+            float(percentile),
+            float(pnl)
+        ]])
 
-        features = np.array([
-            [
-                pair_encoded,
-                timeframe_encoded,
-                direction_encoded,
-                confidence,
-                delta,
-                percentile,
-                pnl
-            ]
-        ])
-
-        # =====================================
-        # PREDICT
-        # =====================================
-
-        print("Running AI prediction...")
-        prediction = model.predict(
-            features,
-            verbose=0
-        )
-
-        probability = float(
-            prediction[0][0]
-        )
+        # ✅ PREDICT
+        prediction = model.predict(features, verbose=0)
+        probability = float(prediction[0][0])
 
         return probability
-        print(f"AI Probability: {probability}")
 
     except Exception as e:
-
         print("AI Prediction Error:", e)
+        return 0.0
 
-        return 0
 
-def predict_signal(df, pair="BTC-USDT", timeframe="5m"):
+# =========================================
+# ✅ SIGNAL GENERATOR (USED BY BOT)
+# =========================================
+def predict_signal(df, symbol, timeframe):
     try:
+
+        if len(df) < 2:
+            return "DOWN", 0
+
         last = df.iloc[0]
         prev = df.iloc[1]
 
+        # ✅ PRICE CHANGE
         delta = float(last['close']) - float(prev['close'])
 
+        # ✅ DIRECTION
         direction = "UP" if delta > 0 else "DOWN"
 
-        #  REALISTIC FEATURES
-        confidence_input = abs(delta)  # movement strength
-        percentile = abs(delta) / float(prev['close'])  # normalized movement
+        # ✅ FEATURES
+        confidence_input = abs(delta)
+        percentile = abs(delta) / float(prev['close']) if prev['close'] != 0 else 0
 
+        # ✅ MODEL CALL (FIXED ✅)
         probability = predict_trade(
-            pair=pair,
+            pair=symbol,  # ✅ FIXED
             timeframe=timeframe,
             direction="LONG" if direction == "UP" else "SHORT",
             confidence=confidence_input,
@@ -127,7 +103,8 @@ def predict_signal(df, pair="BTC-USDT", timeframe="5m"):
             pnl=0
         )
 
-        confidence = int(probability * 100)
+        # ✅ CONVERT TO %
+        confidence = int(max(0, min(probability * 100, 100)))
 
         return direction, confidence
 
