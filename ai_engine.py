@@ -5,24 +5,15 @@ from tensorflow.keras.models import load_model
 # ✅ LOAD MODEL
 # =========================================
 model = load_model("trading_ai_model.h5")
-print(" AI MODEL LOADED")
+print("🧠 AI MODEL LOADED")
 
 
 # =========================================
-# ✅ PREDICT CORE (MODEL)
+# ✅ CORE PREDICT FUNCTION
 # =========================================
-def predict_trade(
-    pair,
-    timeframe,
-    direction,
-    confidence,
-    delta,
-    percentile,
-    pnl
-):
+def predict_trade(pair, timeframe, direction, confidence, delta, percentile, pnl):
     try:
 
-        # ✅ ENCODING MAPS
         pair_map = {
             "BTC-USDT": 0,
             "ETH-USDT": 1,
@@ -35,20 +26,18 @@ def predict_trade(
             "5m": 2,
             "15m": 3,
             "30m": 4,
-            "1H": 5  # 
+            "1H": 5
         }
 
-       direction_map = {
-           "LONG": 0,
-           "SHORT": 1
-       }
+        direction_map = {
+            "LONG": 0,
+            "SHORT": 1
+        }
 
-        # ✅ ENCODE
         pair_encoded = pair_map.get(pair, 0)
         timeframe_encoded = timeframe_map.get(timeframe, 0)
         direction_encoded = direction_map.get(direction, 0)
 
-        # ✅ FEATURE VECTOR
         features = np.array([[
             pair_encoded,
             timeframe_encoded,
@@ -59,7 +48,6 @@ def predict_trade(
             float(pnl)
         ]])
 
-        # ✅ PREDICT
         prediction = model.predict(features, verbose=0)
         probability = float(prediction[0][0])
 
@@ -71,7 +59,7 @@ def predict_trade(
 
 
 # =========================================
-# ✅ SIGNAL GENERATOR (USED BY BOT)
+# ✅ SIGNAL FUNCTION
 # =========================================
 def predict_signal(df, symbol, timeframe):
     try:
@@ -82,19 +70,19 @@ def predict_signal(df, symbol, timeframe):
         last = df.iloc[0]
         prev = df.iloc[1]
 
-        # ✅ PRICE CHANGE
         delta = float(last['close']) - float(prev['close'])
 
-        # ✅ DIRECTION
         direction = "UP" if delta > 0 else "DOWN"
 
-        # ✅ FEATURES
         confidence_input = abs(delta)
-        percentile = abs(delta) / float(prev['close']) if prev['close'] != 0 else 0
 
-        # ✅ MODEL CALL (FIXED ✅)
+        if prev['close'] != 0:
+            percentile = abs(delta) / float(prev['close'])
+        else:
+            percentile = 0
+
         probability = predict_trade(
-            pair=symbol,  # ✅ FIXED
+            pair=symbol,
             timeframe=timeframe,
             direction="LONG" if direction == "UP" else "SHORT",
             confidence=confidence_input,
@@ -103,7 +91,6 @@ def predict_signal(df, symbol, timeframe):
             pnl=0
         )
 
-        # ✅ CONVERT TO %
         confidence = int(max(0, min(probability * 100, 100)))
 
         return direction, confidence
