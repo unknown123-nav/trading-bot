@@ -8,7 +8,7 @@ from db import create_paper_trade, get_open_trades, close_trade, save_signal
 from config import SYMBOLS
 from ai_engine import predict_signal
 
-print("✅ bot_engine FILE LOADED")
+print(" bot_engine FILE LOADED")
 
 # ✅ GLOBALS
 last_signal_time = {}
@@ -73,7 +73,7 @@ def process_timeframe(symbol, timeframe, table_name):
         trade_tf = t[4]
 
         if trade_symbol == symbol and trade_tf == timeframe:
-            print(f"⛔ Duplicate blocked {symbol} {timeframe}")
+            print(f" Duplicate blocked {symbol} {timeframe}")
             return
 
     # ✅ TP / SL CALCULATION ✅
@@ -97,11 +97,11 @@ def process_timeframe(symbol, timeframe, table_name):
 
     # ✅ QUALITY
     if confidence >= 80:
-        quality = "🔥 HIGH"
+        quality = " HIGH"
     elif confidence >= 70:
-        quality = "✅ GOOD"
+        quality = " GOOD"
     else:
-        quality = "⚠️ WEAK"
+        quality = " WEAK"
 
     uk_time = get_uk_time().strftime("%H:%M:%S")
     direction_text = "UP" if signal_type == "LONG" else "DOWN"
@@ -193,9 +193,13 @@ def monitor_trades():
                 continue
             processed_ids.add(trade_id)
 
-            pair, side, entry = trade[1], trade[2], float(trade[3])
-            df = get_data(pair, "1m", 1)
+            pair = trade[1]
+            side = trade[2]
+            entry = float(trade[3])
+            tp = float(trade[5])
+            sl = float(trade[6])
 
+            df = get_data(pair, "1m", 1)
             if df.empty:
                 continue
 
@@ -207,12 +211,19 @@ def monitor_trades():
                 else (entry - current) / entry * 100
             )
 
-            if pnl >= 1 or pnl <= -1:
+            # ✅ TP HIT
+            if (side == "LONG" and current >= tp) or (side == "SHORT" and current <= tp):
+                print(f" TP HIT → {pair}")
                 close_trade(trade_id, current, round(pnl, 2))
 
-        except:
-            continue
+            # ✅ SL HIT
+            elif (side == "LONG" and current <= sl) or (side == "SHORT" and current >= sl):
+                print(f" SL HIT → {pair}")
+                close_trade(trade_id, current, round(pnl, 2))
 
+        except Exception as e:
+            print("Monitor error:", e)
+            continue
 
 # =========================================
 # ✅ RUN BOT
