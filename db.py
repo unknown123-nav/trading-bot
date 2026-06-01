@@ -15,11 +15,7 @@ def get_connection():
 
 
 # =========================================
-# SAVE SIGNAL
-# =========================================
-
-# =========================================
-# ✅ SAVE SIGNAL (UPDATED)
+#  SAVE SIGNAL (UPDATED)
 # =========================================
 
 def save_signal(
@@ -61,10 +57,10 @@ def save_signal(
 
         conn.commit()
 
-        print(f"✅ Saved signal → {table} | {pair}")
+        print(f" Saved signal → {table} | {pair}")
 
     except Exception as e:
-        print("❌ Signal save error:", e)
+        print(" Signal save error:", e)
 
     finally:
         cursor.close()
@@ -480,7 +476,7 @@ def close_trade(trade_id, current_price, pnl):
         cursor.execute("""
             UPDATE paper_trades
             SET 
-                current_price = %s,
+                exit_price = %s,
                 pnl = %s,
                 status = 'CLOSED',
                 closed_at = NOW()
@@ -488,7 +484,7 @@ def close_trade(trade_id, current_price, pnl):
         """, (current_price, pnl, trade_id))
 
         conn.commit()
-        print(f"✅ Trade {trade_id} closed and saved")
+        print(f" Trade {trade_id} closed and saved")
 
     except Exception as e:
         print("Close trade error:", e)
