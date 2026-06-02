@@ -207,11 +207,11 @@ def monitor_trades():
             should_close = False
 
             if (side == "LONG" and current >= tp) or (side == "SHORT" and current <= tp):
-                print(f"🎯 TP HIT → {pair}")
+                print(f" TP HIT → {pair}")
                 should_close = True
 
             elif (side == "LONG" and current <= sl) or (side == "SHORT" and current >= sl):
-                print(f"🛑 SL HIT → {pair}")
+                print(f" SL HIT → {pair}")
                 should_close = True
 
             # ✅ SAFETY CHECK (CRITICAL)
@@ -234,6 +234,23 @@ def monitor_trades():
                     if conn:
                         conn.close()
 
+                result = "WIN " if pnl > 0 else "LOSS "
+                uk_time = get_uk_time().strftime("%H:%M:%S")
+                message_text = f"""
+               📊 TRADE CLOSED
+               Pair: {pair}
+               Side: {side}
+
+               Entry: {entry}
+               Exit: {current}
+
+               PnL: {round(pnl, 2)}%
+               Result: {result}
+
+               Time: {uk_time}
+               """
+                send_message(AUTO_CHAT_ID, message_text)
+                save_telegram_log(message_text, "AUTO_CHANNEL", "CLOSED")
                 close_trade(trade_id, current, round(pnl, 2))
 
         except Exception as e:
