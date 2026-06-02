@@ -49,7 +49,6 @@ def predict_trade(pair, timeframe, direction, confidence, delta, percentile, pnl
         print("AI Prediction Error:", e)
         return 0.0
 
-
 def predict_signal(df, symbol, timeframe):
     try:
         if len(df) < 2:
@@ -62,8 +61,10 @@ def predict_signal(df, symbol, timeframe):
         direction = "UP" if delta > 0 else "DOWN"
 
         confidence_input = abs(delta)
+
         percentile = abs(delta) / float(prev['close']) if float(prev['close']) != 0 else 0
 
+        # ✅ GET AI PROBABILITY FIRST
         probability = predict_trade(
             pair=symbol,
             timeframe=timeframe,
@@ -74,7 +75,20 @@ def predict_signal(df, symbol, timeframe):
             pnl=0
         )
 
-        confidence = int(max(0, min(probability * 100, 100)))
+        # ✅ BASE CONFIDENCE
+        confidence = 55 + (probability * 40)
+
+        # ✅ BOOST FOR STRONG MOVE
+        if abs(delta) > 0.5:
+            confidence += 5
+
+        # ✅ LIMIT RANGE
+        confidence = min(confidence, 95)
+        confidence = round(confidence, 2)
+
+        # ✅ DEBUG LOG
+        print(f"AI → {symbol} {timeframe} | Prob: {probability:.4f} | Conf: {confidence}")
+
         return direction, confidence
 
     except Exception as e:
