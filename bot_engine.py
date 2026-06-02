@@ -4,7 +4,7 @@ from datetime import datetime
 import pytz
 
 from market import get_data
-from db import create_paper_trade, get_open_trades, close_trade, save_signal
+from db import create_paper_trade, get_open_trades, close_trade, save_signal, save_telegram_log
 from config import SYMBOLS
 from ai_engine import predict_signal
 
@@ -13,14 +13,12 @@ print("✅ bot_engine LOADED")
 recent_symbols = {}
 last_signal_time = {}
 
-# ✅ TELEGRAM CONFIG
 TELEGRAM_TOKEN = "8625282562:AAGNQZgdVK0mPYrXJ2GOAlc55HW74_5glak"
 AUTO_CHAT_ID = "-5211298112"
 MANUAL_CHAT_ID = "-5287950499"
 
 MANUAL_TFS = ["30m", "1H"]
 
-# ✅ UK TIME
 def get_uk_time():
     return datetime.now(pytz.timezone("Europe/London"))
 
@@ -35,7 +33,7 @@ def send_message(chat_id, message):
         print("❌ Telegram failed")
 
 # =========================================
-# ✅ AUTO SIGNAL
+# ✅ AUTO (REAL TRADES ONLY)
 # =========================================
 def process_auto(symbol, timeframe, table_name):
 
@@ -49,39 +47,43 @@ def process_auto(symbol, timeframe, table_name):
 
     direction, ai_confidence = predict_signal(df, symbol, timeframe)
 
-    # ✅ STRICT FILTERS
-    if ai_confidence < 90:
+    # ✅ SUPER STRICT RULES
+    if ai_confidence < 95:
         return
 
-    if volatility < 1.0:
+    if volatility < 2.0:
         return
 
-    # ✅ LIMIT 1 SIGNAL PER SYMBOL (5 MIN)
+    # ✅ GLOBAL LIMIT
     symbol_key = f"{symbol}_global"
     if symbol_key in recent_symbols:
         if time.time() - recent_symbols[symbol_key] < 300:
             return
-    recent_symbols[symbol_key] = time.time()
 
     signal_type = "LONG" if direction == "UP" else "SHORT"
     direction_text = "UP" if signal_type == "LONG" else "DOWN"
 
-    # ✅ CONFIDENCE
-    confidence = (ai_confidence * 0.7) + (volatility * 20)
+    confidence = round((ai_confidence * 0.7) + (volatility * 20), 2)
     confidence = max(60, min(confidence, 95))
-    confidence = round(confidence, 2)
 
-    take_profit = latest * (1.01 if signal_type == "LONG" else 0.99)
-    stop_loss = latest * (0.99 if signal_type == "LONG" else 1.01)
+    tp = latest * (1.01 if signal_type == "LONG" else 0.99)
+    sl = latest * (0.99 if signal_type == "LONG" else 1.01)
 
-    create_paper_trade(symbol, signal_type, latest, 1, timeframe, take_profit, stop_loss)
+    # ✅ CREATE TRADE FIRST
+    created = create_paper_trade(symbol, signal_type, latest, 1, timeframe, tp, sl)
 
-    print(f"✅ AUTO {symbol} {timeframe} | CONF: {confidence} | VOL: {round(volatility,2)}")
+    if not created:
+        print(f"❌ BLOCKED → {symbol} {timeframe}")
+        return
+
+    recent_symbols[symbol_key] = time.time()
+
+    print(f"✅ REAL TRADE → {symbol} {timeframe}")
 
     uk_time = get_uk_time().strftime("%H:%M:%S")
 
-    send_message(AUTO_CHAT_ID, f"""
-🤖 AUTO SIGNAL
+    message_text = f"""
+🤖 AUTO TRADE STARTED
 
 Pair: {symbol}
 Direction: {direction_text}
@@ -92,15 +94,19 @@ Volatility: {round(volatility,2)}%
 Timeframe: {timeframe}
 Time: {uk_time}
 
-TP: {round(take_profit,4)}
-SL: {round(stop_loss,4)}
-""")
+TP: {round(tp,4)}
+SL: {round(sl,4)}
+"""
+
+    send_message(AUTO_CHAT_ID, message_text)
 
     save_signal(table_name, symbol, signal_type, confidence, latest, "AI", volatility, trade_source="AUTO")
 
+    save_telegram_log(message_text, "AUTO_CHANNEL", "SENT")
+
 
 # =========================================
-# ✅ MANUAL SIGNAL
+# ✅ MANUAL (NO TRADES)
 # =========================================
 def process_manual(symbol, timeframe, table_name):
 
@@ -115,11 +121,13 @@ def process_manual(symbol, timeframe, table_name):
     avg = float(df['close'].mean())
     volatility = abs(latest - avg) / avg * 100
 
-    # ✅ VERY STRICT FILTER
-    if volatility < 3.0:
+    direction, ai_confidence = predict_signal(df, symbol, timeframe)
+
+    # ✅ STRICT MANUAL RULES
+    if ai_confidence < 95:
         return
 
-    if abs(latest - avg) / avg * 100 < 1.5:
+    if volatility < 4.5:
         return
 
     key = f"{symbol}_{timeframe}_MANUAL"
@@ -129,27 +137,29 @@ def process_manual(symbol, timeframe, table_name):
 
     last_signal_time[key] = time.time()
 
-    direction = "UP" if latest > avg else "DOWN"
+    direction_text = direction
     signal_type = "LONG" if direction == "UP" else "SHORT"
 
-    confidence = min(95, round(volatility * 40, 2))
+    confidence = 95
     uk_time = get_uk_time().strftime("%H:%M:%S")
 
-    print(f"✅ MANUAL {symbol} {timeframe} | CONF: {confidence}")
-
-    send_message(MANUAL_CHAT_ID, f"""
+    message_text = f"""
 📡 MANUAL SIGNAL
 
 Pair: {symbol}
-Direction: {direction}
+Direction: {direction_text}
 Timeframe: {timeframe}
 
 Volatility: {round(volatility,2)}%
 Confidence: {confidence}%
 Time: {uk_time}
-""")
+"""
+
+    send_message(MANUAL_CHAT_ID, message_text)
 
     save_signal(table_name, symbol, signal_type, confidence, latest, "AI", volatility, trade_source="MANUAL")
+
+    save_telegram_log(message_text, "MANUAL_CHANNEL", "SENT")
 
 
 # =========================================
@@ -203,6 +213,8 @@ def run_bot():
     while True:
         for symbol in SYMBOLS:
             for tf, table in [
+                ("1m", "signals_1M"),
+                ("3m", "signals_3M"),
                 ("5m", "signals_5M"),
                 ("15m", "signals_15M"),
                 ("30m", "signals_30M"),
@@ -210,8 +222,8 @@ def run_bot():
             ]:
                 process_auto(symbol, tf, table)
                 process_manual(symbol, tf, table)
-                time.sleep(0.2)
+                time.sleep(0.5)
 
         monitor_trades()
 
-        time.sleep(2)
+        time.sleep(3)
