@@ -70,17 +70,30 @@ def create_paper_trade(symbol, side, entry, qty, timeframe, tp, sl):
     cursor = conn.cursor()
 
     try:
-        # ✅ Avoid duplicate trades
+        # ✅ check existing open trade
         cursor.execute("""
-            SELECT id FROM paper_trades
+            SELECT id, created_at FROM paper_trades
             WHERE pair = %s AND timeframe = %s AND status = 'OPEN'
             LIMIT 1
         """, (symbol, timeframe))
 
-        if cursor.fetchone():
-            print(f"⚠️ Trade already open: {symbol} {timeframe}")
-            return
+        row = cursor.fetchone()
 
+        if row:
+            trade_id, created_at = row
+
+            from datetime import datetime
+            diff = (datetime.utcnow() - created_at).total_seconds()
+
+            # ✅ allow new trade if older than 5 minutes
+            if diff < 300:
+                print(f"⚠️ Trade still active: {symbol} {timeframe}")
+                return
+
+            else:
+                print(f"♻️ Old trade ignored → opening new one")
+
+        # ✅ insert new trade
         cursor.execute("""
             INSERT INTO paper_trades (
                 pair,
