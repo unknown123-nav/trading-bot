@@ -183,3 +183,49 @@ def close_trade(trade_id, current_price, pnl):
     finally:
         cursor.close()
         conn.close()
+
+# =========================================
+# ✅ TELEGRAM LOGS
+# =========================================
+def save_telegram_log(message, channel_name, status="SENT"):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            INSERT INTO telegram_logs (message, channel_name, status)
+            VALUES (%s, %s, %s)
+        """, (message, channel_name, status))
+
+        conn.commit()
+
+    except Exception as e:
+        print("❌ Telegram log error:", e)
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# =========================================
+# ✅ CONVERSATION LOGS
+# =========================================
+def save_conversation(message_id, pair, user_msg, bot_msg):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            INSERT INTO telegram_conversations
+            (telegram_message_id, pair_name, user_message, bot_response)
+            VALUES (%s, %s, %s, %s)
+        """, (message_id, pair, user_msg, bot_msg))
+
+        conn.commit()
+
+    except Exception as e:
+        print("❌ Conversation save error:", e)
+
+    finally:
+        cursor.close()
+        conn.close()
