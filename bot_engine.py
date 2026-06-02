@@ -62,13 +62,6 @@ def process_auto(symbol, timeframe, table_name):
     if key in last_signal_time and time.time() - last_signal_time[key] < 300:
         return
 
-    # ✅ duplicate FIX (no permanent blocking)
-    for t in get_open_trades():
-        if t[1] == symbol and t[4] == timeframe:
-            if time.time() - last_signal_time.get(key, 0) < 180:
-                print(f"Duplicate AUTO blocked {symbol} {timeframe}")
-                return
-
     last_signal_time[key] = time.time()
 
     # ✅ better confidence formula
