@@ -28,17 +28,26 @@ def get_data(symbol, timeframe='1m', limit=50):
         if df.empty:
             return df
 
-        # ✅ Convert types (IMPORTANT fix)
+        # ✅ Convert numeric safely
         numeric_cols = ["open", "high", "low", "close", "vol"]
-        df[numeric_cols] = df[numeric_cols].astype(float)
+        df[numeric_cols] = df[numeric_cols].apply(pd.to_numeric, errors="coerce")
 
-        # ✅ Convert timestamp
-        df["time"] = pd.to_datetime(df["time"], unit="ms")
+        # ✅ SAFE TIMESTAMP FIX (CRITICAL)
+        df["time"] = pd.to_numeric(df["time"], errors="coerce")
 
-        # ✅ Sort newest → oldest (your AI expects this)
+        df["time"] = pd.to_datetime(
+            df["time"],
+            unit="ms",
+            errors="coerce"
+        )
+
+        # ✅ REMOVE BAD ROWS
+        df = df.dropna(subset=["time"])
+
+        # ✅ Sort newest first
         df = df.sort_values(by="time", ascending=False).reset_index(drop=True)
 
-        # ✅ Keep only needed columns (clean)
+        # ✅ Keep clean columns
         df = df[["time", "open", "high", "low", "close", "vol"]]
 
         return df
