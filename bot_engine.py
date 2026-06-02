@@ -8,7 +8,12 @@ from db import create_paper_trade, get_open_trades, close_trade, save_signal
 from config import SYMBOLS
 from ai_engine import predict_signal
 
-print(" bot_engine LOADED")
+print("✅ bot_engine LOADED")
+
+# ✅ TELEGRAM CONFIG
+TELEGRAM_TOKEN = "8780022222:AAEyVNVseCqJ--tjwNv5nvcbxl4goeFQgC8"
+AUTO_CHAT_ID = "-5211298112"
+MANUAL_CHAT_ID = "-5287950499"
 
 # ✅ GLOBALS
 last_signal_time = {}
@@ -16,27 +21,24 @@ last_signal_time = {}
 AUTO_TFS = ["1m", "3m", "5m", "15m", "30m", "1H"]
 MANUAL_TFS = ["30m", "1H"]
 
-TELEGRAM_TOKEN = "8780022222:AAEyVNVseCqJ--tjwNv5nvcbxl4goeFQgC8"
-AUTO_CHAT_ID = "-5211298112"
-MANUAL_CHAT_ID = "-5287950499"
-
 # ✅ UK TIME
 def get_uk_time():
     return datetime.now(pytz.timezone("Europe/London"))
 
-# =========================================
 # ✅ TELEGRAM
-# =========================================
 def send_message(chat_id, message):
-    requests.post(
-        f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
-        json={"chat_id": chat_id, "text": message}
-    )
+    try:
+        requests.post(
+            f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
+            json={"chat_id": chat_id, "text": message}
+        )
+    except:
+        print("❌ Telegram failed")
 
 # =========================================
-# ✅ PROCESS SIGNAL
+# ✅ AUTO SIGNAL
 # =========================================
-def process_timeframe(symbol, timeframe, table_name):
+def process_auto(symbol, timeframe, table_name):
 
     df = get_data(symbol, timeframe, 40)
     if df.empty:
@@ -44,156 +46,122 @@ def process_timeframe(symbol, timeframe, table_name):
 
     latest = float(df.iloc[0]['close'])
     avg = float(df['close'].mean())
-
-    # ✅ VOLATILITY
     volatility = abs(latest - avg) / avg * 100
 
-    # ✅ AI SIGNAL (AUTO ONLY)
     direction, ai_confidence = predict_signal(df, symbol, timeframe)
 
+    if ai_confidence < 70:
+        return
+
     signal_type = "LONG" if direction == "UP" else "SHORT"
-    key = f"{symbol}_{timeframe}"
+    direction_text = "UP" if signal_type == "LONG" else "DOWN"
 
-    # ✅ COOLDOWN
-    if key in last_signal_time:
-        if time.time() - last_signal_time[key] < 900:
-            return
+    key = f"{symbol}_{timeframe}_AUTO"
 
-    # ✅ DUPLICATE CHECK
-    open_trades = get_open_trades()
-    for t in open_trades:
+    # ✅ cooldown (5 min)
+    if key in last_signal_time and time.time() - last_signal_time[key] < 300:
+        return
+
+    # ✅ duplicate FIX (no permanent blocking)
+    for t in get_open_trades():
         if t[1] == symbol and t[4] == timeframe:
-            print(f"Duplicate blocked {symbol} {timeframe}")
-            return
+            if time.time() - last_signal_time.get(key, 0) < 180:
+                print(f"Duplicate AUTO blocked {symbol} {timeframe}")
+                return
 
     last_signal_time[key] = time.time()
 
-    # ===============================
-    # ✅ AUTO CONFIDENCE (AI MODEL)
-    # ===============================
-    auto_confidence = round(ai_confidence, 2)
-
-    if auto_confidence < 70:
-        return
-
-    # ===============================
-    # ✅ MANUAL CONFIDENCE (VOLATILITY)
-    # ===============================
-    manual_confidence = min(95, round(volatility * 40, 2))
-
-    # ✅ DEBUG
-    print(f"{symbol} {timeframe} | Vol: {volatility:.2f}% | AI: {auto_confidence}% | Manual: {manual_confidence}%")
+    # ✅ better confidence formula
+    confidence = (ai_confidence * 0.7) + (volatility * 20)
+    confidence = max(60, min(confidence, 95))
+    confidence = round(confidence, 2)
 
     # ✅ TP / SL
-    if signal_type == "LONG":
-        take_profit = latest * 1.01
-        stop_loss = latest * 0.99
-    else:
-        take_profit = latest * 0.99
-        stop_loss = latest * 1.01
+    take_profit = latest * (1.01 if signal_type == "LONG" else 0.99)
+    stop_loss = latest * (0.99 if signal_type == "LONG" else 1.01)
 
-    # ✅ CREATE TRADE (AUTO ONLY)
-    create_paper_trade(
-        symbol,
-        signal_type,
-        latest,
-        1,
-        timeframe,
-        take_profit,
-        stop_loss
-    )
+    # ✅ create trade
+    create_paper_trade(symbol, signal_type, latest, 1, timeframe, take_profit, stop_loss)
 
-    # ✅ QUALITY (AUTO)
-    if auto_confidence >= 85:
-        quality = " HIGH"
-    elif auto_confidence >= 75:
-        quality = " GOOD"
-    else:
-        quality = " WEAK"
+    print(f"✅ AUTO SIGNAL {symbol} {timeframe} | CONF: {confidence}% | VOL: {round(volatility,2)}%")
 
     uk_time = get_uk_time().strftime("%H:%M:%S")
-    direction_text = " UP" if signal_type == "LONG" else " DOWN"
 
-    # =====================================
-    # ✅ AUTO MESSAGE
-    # =====================================
-    auto_msg = f"""
- AI AUTO SIGNAL
+    # ✅ TELEGRAM AUTO
+    send_message(AUTO_CHAT_ID, f"""
+🤖 AUTO SIGNAL
 
- Pair: {symbol}
-{direction_text}
+Pair: {symbol}
+Direction: {direction_text}
+Entry: {latest}
 
- Entry: {latest}
+Confidence: {confidence}%
+Volatility: {round(volatility,2)}%
+Timeframe: {timeframe}
+Time: {uk_time}
 
- AI Confidence: {auto_confidence}%
- Volatility: {round(volatility, 2)}%
- TF: {timeframe}
- Time: {uk_time}
+TP: {round(take_profit,4)}
+SL: {round(stop_loss,4)}
 
- TP: {round(take_profit, 4)}
- SL: {round(stop_loss, 4)}
+🚀 Trade placed automatically
+""")
 
- Quality: {quality}
+    save_signal(table_name, symbol, signal_type, confidence, latest, "AI", volatility, trade_source="AUTO")
 
- Trade executed
-"""
-    send_message(AUTO_CHAT_ID, auto_msg)
 
-    # ✅ SAVE AUTO
-    save_signal(
-        table_name,
-        symbol,
-        signal_type,
-        auto_confidence,
-        latest,
-        "AI",
-        volatility,
-        trade_source="AUTO"
-    )
+# =========================================
+# ✅ MANUAL SIGNAL
+# =========================================
+def process_manual(symbol, timeframe, table_name):
 
-    # =====================================
-    # ✅ MANUAL SIGNAL
-    # =====================================
-    if timeframe in MANUAL_TFS and volatility >= 0.9:
+    if timeframe not in MANUAL_TFS:
+        return
 
-        # ✅ QUALITY MANUAL
-        if manual_confidence >= 85:
-            manual_quality = "STRONG MOVE"
-        elif manual_confidence >= 70:
-            manual_quality = "GOOD SETUP"
-        else:
-            manual_quality = "LOW MOMENTUM"
+    df = get_data(symbol, timeframe, 40)
+    if df.empty:
+        return
 
-        manual_msg = f"""
- MANUAL SIGNAL
+    latest = float(df.iloc[0]['close'])
+    avg = float(df['close'].mean())
+    volatility = abs(latest - avg) / avg * 100
 
- Pair: {symbol}
-{direction_text}
- TF: {timeframe}
+    if volatility < 0.9:
+        return
 
- Volatility: {round(volatility,2)}%
- Confidence: {manual_confidence}%
+    key = f"{symbol}_{timeframe}_MANUAL"
 
- Time: {uk_time}
+    if key in last_signal_time and time.time() - last_signal_time[key] < 300:
+        return
 
- Strength: {manual_quality}
+    last_signal_time[key] = time.time()
 
- Manual trade only
-"""
+    direction = "UP" if latest > avg else "DOWN"
+    direction_text = direction
+    signal_type = "LONG" if direction == "UP" else "SHORT"
 
-        send_message(MANUAL_CHAT_ID, manual_msg)
+    # ✅ volatility-based confidence
+    confidence = min(95, round(volatility * 40, 2))
 
-        # ✅ SAVE MANUAL
-        save_signal(
-            table_name,
-            symbol,
-            signal_type,
-            manual_confidence,
-            latest,
-            "VOLATILITY",
-            volatility,
-            trade_source="MANUAL"
-        )
+    uk_time = get_uk_time().strftime("%H:%M:%S")
+
+    print(f"✅ MANUAL SIGNAL {symbol} {timeframe} | CONF: {confidence}% | VOL: {round(volatility,2)}%")
+
+    send_message(MANUAL_CHAT_ID, f"""
+📡 MANUAL SIGNAL
+
+Pair: {symbol}
+Direction: {direction_text}
+Timeframe: {timeframe}
+
+Volatility: {round(volatility,2)}%
+Confidence: {confidence}%
+Time: {uk_time}
+
+⚠️ Manual trade only
+""")
+
+    save_signal(table_name, symbol, signal_type, confidence, latest, "AI", volatility, trade_source="MANUAL")
+
 
 # =========================================
 # ✅ MONITOR TRADES
@@ -223,18 +191,19 @@ def monitor_trades():
                 else (entry - current) / entry * 100
             )
 
-            # ✅ TP HIT
+            # ✅ TP
             if (side == "LONG" and current >= tp) or (side == "SHORT" and current <= tp):
                 print(f"🎯 TP HIT → {pair}")
                 close_trade(trade_id, current, round(pnl, 2))
 
-            # ✅ SL HIT
+            # ✅ SL
             elif (side == "LONG" and current <= sl) or (side == "SHORT" and current >= sl):
                 print(f"🛑 SL HIT → {pair}")
                 close_trade(trade_id, current, round(pnl, 2))
 
         except Exception as e:
             print("❌ Monitor error:", e)
+
 
 # =========================================
 # ✅ RUN BOT
@@ -243,16 +212,20 @@ def run_bot():
 
     print("💓 BOT RUNNING")
 
-    for symbol in SYMBOLS:
-        for tf, table in [
-            ("1m", "signals_1M"),
-            ("3m", "signals_3M"),
-            ("5m", "signals_5M"),
-            ("15m", "signals_15M"),
-            ("30m", "signals_30M"),
-            ("1H", "signals_1H"),
-        ]:
-            process_timeframe(symbol, tf, table)
-            time.sleep(0.2)
+    while True:
+        for symbol in SYMBOLS:
+            for tf, table in [
+                ("1m", "signals_1M"),
+                ("3m", "signals_3M"),
+                ("5m", "signals_5M"),
+                ("15m", "signals_15M"),
+                ("30m", "signals_30M"),
+                ("1H", "signals_1H"),
+            ]:
+                process_auto(symbol, tf, table)
+                process_manual(symbol, tf, table)
+                time.sleep(0.2)
 
-        time.sleep(1)
+        monitor_trades()
+
+        time.sleep(2)
