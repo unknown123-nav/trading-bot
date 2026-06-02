@@ -8,7 +8,7 @@ from db import create_paper_trade, get_open_trades, close_trade, save_signal
 from config import SYMBOLS
 from ai_engine import predict_signal
 
-print("🚀 bot_engine LOADED")
+print(" bot_engine LOADED")
 
 # ✅ GLOBALS
 last_signal_time = {}
@@ -63,7 +63,7 @@ def process_timeframe(symbol, timeframe, table_name):
     open_trades = get_open_trades()
     for t in open_trades:
         if t[1] == symbol and t[4] == timeframe:
-            print(f"⛔ Duplicate blocked {symbol} {timeframe}")
+            print(f"Duplicate blocked {symbol} {timeframe}")
             return
 
     last_signal_time[key] = time.time()
@@ -82,7 +82,7 @@ def process_timeframe(symbol, timeframe, table_name):
     manual_confidence = min(95, round(volatility * 40, 2))
 
     # ✅ DEBUG
-    print(f"🔍 {symbol} {timeframe} | Vol: {volatility:.2f}% | AI: {auto_confidence}% | Manual: {manual_confidence}%")
+    print(f"{symbol} {timeframe} | Vol: {volatility:.2f}% | AI: {auto_confidence}% | Manual: {manual_confidence}%")
 
     # ✅ TP / SL
     if signal_type == "LONG":
@@ -105,37 +105,37 @@ def process_timeframe(symbol, timeframe, table_name):
 
     # ✅ QUALITY (AUTO)
     if auto_confidence >= 85:
-        quality = "🔥 HIGH"
+        quality = " HIGH"
     elif auto_confidence >= 75:
-        quality = "✅ GOOD"
+        quality = " GOOD"
     else:
-        quality = "⚠️ WEAK"
+        quality = " WEAK"
 
     uk_time = get_uk_time().strftime("%H:%M:%S")
-    direction_text = "📈 UP" if signal_type == "LONG" else "📉 DOWN"
+    direction_text = " UP" if signal_type == "LONG" else " DOWN"
 
     # =====================================
     # ✅ AUTO MESSAGE
     # =====================================
     auto_msg = f"""
-🤖 AI AUTO SIGNAL
+ AI AUTO SIGNAL
 
-💱 Pair: {symbol}
+ Pair: {symbol}
 {direction_text}
 
-💰 Entry: {latest}
+ Entry: {latest}
 
-🧠 AI Confidence: {auto_confidence}%
-🌊 Volatility: {round(volatility, 2)}%
-⏱️ TF: {timeframe}
-🕒 Time: {uk_time}
+ AI Confidence: {auto_confidence}%
+ Volatility: {round(volatility, 2)}%
+ TF: {timeframe}
+ Time: {uk_time}
 
-🎯 TP: {round(take_profit, 4)}
-🛑 SL: {round(stop_loss, 4)}
+ TP: {round(take_profit, 4)}
+ SL: {round(stop_loss, 4)}
 
-📊 Quality: {quality}
+ Quality: {quality}
 
-🚀 Trade executed
+ Trade executed
 """
     send_message(AUTO_CHAT_ID, auto_msg)
 
@@ -158,27 +158,27 @@ def process_timeframe(symbol, timeframe, table_name):
 
         # ✅ QUALITY MANUAL
         if manual_confidence >= 85:
-            manual_quality = "🔥 STRONG MOVE"
+            manual_quality = "STRONG MOVE"
         elif manual_confidence >= 70:
-            manual_quality = "✅ GOOD SETUP"
+            manual_quality = "GOOD SETUP"
         else:
-            manual_quality = "⚠️ LOW MOMENTUM"
+            manual_quality = "LOW MOMENTUM"
 
         manual_msg = f"""
-📡 MANUAL SIGNAL
+ MANUAL SIGNAL
 
-💱 Pair: {symbol}
+ Pair: {symbol}
 {direction_text}
-⏱️ TF: {timeframe}
+ TF: {timeframe}
 
-🌊 Volatility: {round(volatility,2)}%
-📊 Confidence: {manual_confidence}%
+ Volatility: {round(volatility,2)}%
+ Confidence: {manual_confidence}%
 
-🕒 Time: {uk_time}
+ Time: {uk_time}
 
-📌 Strength: {manual_quality}
+ Strength: {manual_quality}
 
-⚠️ Manual trade only
+ Manual trade only
 """
 
         send_message(MANUAL_CHAT_ID, manual_msg)
