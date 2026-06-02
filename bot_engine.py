@@ -191,18 +191,40 @@ def monitor_trades():
                 else (entry - current) / entry * 100
             )
 
+            should_close = False
+
             if (side == "LONG" and current >= tp) or (side == "SHORT" and current <= tp):
                 print(f"🎯 TP HIT → {pair}")
-                close_trade(trade_id, current, round(pnl, 2))
+                should_close = True
 
             elif (side == "LONG" and current <= sl) or (side == "SHORT" and current >= sl):
                 print(f"🛑 SL HIT → {pair}")
+                should_close = True
+
+            # ✅ SAFETY CHECK (CRITICAL)
+            if should_close:
+                conn = None
+                try:
+                    from db import get_connection
+                    conn = get_connection()
+                    cursor = conn.cursor()
+
+                    cursor.execute("""
+                        SELECT status FROM paper_trades WHERE id = %s
+                    """, (trade_id,))
+                    status = cursor.fetchone()
+
+                    if not status or status[0] != "OPEN":
+                        continue  # ✅ already closed → skip
+
+                finally:
+                    if conn:
+                        conn.close()
+
                 close_trade(trade_id, current, round(pnl, 2))
 
         except Exception as e:
             print("❌ Monitor error:", e)
-
-
 # =========================================
 # ✅ RUN BOT
 # =========================================
