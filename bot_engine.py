@@ -10,15 +10,14 @@ from ai_engine import predict_signal
 
 print("✅ bot_engine LOADED")
 
+recent_symbols = {}
+last_signal_time = {}
+
 # ✅ TELEGRAM CONFIG
-TELEGRAM_TOKEN = "8780022222:AAEyVNVseCqJ--tjwNv5nvcbxl4goeFQgC8"
+TELEGRAM_TOKEN = "8625282562:AAGNQZgdVK0mPYrXJ2GOAlc55HW74_5glak"
 AUTO_CHAT_ID = "-5211298112"
 MANUAL_CHAT_ID = "-5287950499"
 
-# ✅ GLOBALS
-last_signal_time = {}
-
-AUTO_TFS = ["1m", "3m", "5m", "15m", "30m", "1H"]
 MANUAL_TFS = ["30m", "1H"]
 
 # ✅ UK TIME
@@ -50,37 +49,37 @@ def process_auto(symbol, timeframe, table_name):
 
     direction, ai_confidence = predict_signal(df, symbol, timeframe)
 
-    if ai_confidence < 70:
+    # ✅ STRICT FILTERS
+    if ai_confidence < 90:
         return
+
+    if volatility < 1.0:
+        return
+
+    # ✅ LIMIT 1 SIGNAL PER SYMBOL (5 MIN)
+    symbol_key = f"{symbol}_global"
+    if symbol_key in recent_symbols:
+        if time.time() - recent_symbols[symbol_key] < 300:
+            return
+    recent_symbols[symbol_key] = time.time()
 
     signal_type = "LONG" if direction == "UP" else "SHORT"
     direction_text = "UP" if signal_type == "LONG" else "DOWN"
 
-    key = f"{symbol}_{timeframe}_AUTO"
-
-    # ✅ cooldown (5 min)
-    if key in last_signal_time and time.time() - last_signal_time[key] < 300:
-        return
-
-    last_signal_time[key] = time.time()
-
-    # ✅ better confidence formula
+    # ✅ CONFIDENCE
     confidence = (ai_confidence * 0.7) + (volatility * 20)
     confidence = max(60, min(confidence, 95))
     confidence = round(confidence, 2)
 
-    # ✅ TP / SL
     take_profit = latest * (1.01 if signal_type == "LONG" else 0.99)
     stop_loss = latest * (0.99 if signal_type == "LONG" else 1.01)
 
-    # ✅ create trade
     create_paper_trade(symbol, signal_type, latest, 1, timeframe, take_profit, stop_loss)
 
-    print(f"✅ AUTO SIGNAL {symbol} {timeframe} | CONF: {confidence}% | VOL: {round(volatility,2)}%")
+    print(f"✅ AUTO {symbol} {timeframe} | CONF: {confidence} | VOL: {round(volatility,2)}")
 
     uk_time = get_uk_time().strftime("%H:%M:%S")
 
-    # ✅ TELEGRAM AUTO
     send_message(AUTO_CHAT_ID, f"""
 🤖 AUTO SIGNAL
 
@@ -95,8 +94,6 @@ Time: {uk_time}
 
 TP: {round(take_profit,4)}
 SL: {round(stop_loss,4)}
-
-🚀 Trade placed automatically
 """)
 
     save_signal(table_name, symbol, signal_type, confidence, latest, "AI", volatility, trade_source="AUTO")
@@ -118,39 +115,38 @@ def process_manual(symbol, timeframe, table_name):
     avg = float(df['close'].mean())
     volatility = abs(latest - avg) / avg * 100
 
-    if volatility < 0.9:
+    # ✅ VERY STRICT FILTER
+    if volatility < 3.0:
+        return
+
+    if abs(latest - avg) / avg * 100 < 1.5:
         return
 
     key = f"{symbol}_{timeframe}_MANUAL"
-
-    if key in last_signal_time and time.time() - last_signal_time[key] < 300:
-        return
+    if key in last_signal_time:
+        if time.time() - last_signal_time[key] < 300:
+            return
 
     last_signal_time[key] = time.time()
 
     direction = "UP" if latest > avg else "DOWN"
-    direction_text = direction
     signal_type = "LONG" if direction == "UP" else "SHORT"
 
-    # ✅ volatility-based confidence
     confidence = min(95, round(volatility * 40, 2))
-
     uk_time = get_uk_time().strftime("%H:%M:%S")
 
-    print(f"✅ MANUAL SIGNAL {symbol} {timeframe} | CONF: {confidence}% | VOL: {round(volatility,2)}%")
+    print(f"✅ MANUAL {symbol} {timeframe} | CONF: {confidence}")
 
     send_message(MANUAL_CHAT_ID, f"""
 📡 MANUAL SIGNAL
 
 Pair: {symbol}
-Direction: {direction_text}
+Direction: {direction}
 Timeframe: {timeframe}
 
 Volatility: {round(volatility,2)}%
 Confidence: {confidence}%
 Time: {uk_time}
-
-⚠️ Manual trade only
 """)
 
     save_signal(table_name, symbol, signal_type, confidence, latest, "AI", volatility, trade_source="MANUAL")
@@ -169,10 +165,11 @@ def monitor_trades():
             pair = trade[1]
             side = trade[2]
             entry = float(trade[3])
+            tf = trade[4]
             tp = float(trade[5])
             sl = float(trade[6])
 
-            df = get_data(pair, "1m", 1)
+            df = get_data(pair, tf, 1)
             if df.empty:
                 continue
 
@@ -184,12 +181,10 @@ def monitor_trades():
                 else (entry - current) / entry * 100
             )
 
-            # ✅ TP
             if (side == "LONG" and current >= tp) or (side == "SHORT" and current <= tp):
                 print(f"🎯 TP HIT → {pair}")
                 close_trade(trade_id, current, round(pnl, 2))
 
-            # ✅ SL
             elif (side == "LONG" and current <= sl) or (side == "SHORT" and current >= sl):
                 print(f"🛑 SL HIT → {pair}")
                 close_trade(trade_id, current, round(pnl, 2))
@@ -208,8 +203,6 @@ def run_bot():
     while True:
         for symbol in SYMBOLS:
             for tf, table in [
-                ("1m", "signals_1M"),
-                ("3m", "signals_3M"),
                 ("5m", "signals_5M"),
                 ("15m", "signals_15M"),
                 ("30m", "signals_30M"),
