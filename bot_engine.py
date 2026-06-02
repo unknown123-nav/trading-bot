@@ -236,19 +236,19 @@ def monitor_trades():
 
                 result = "WIN " if pnl > 0 else "LOSS "
                 uk_time = get_uk_time().strftime("%H:%M:%S")
-                message_text = f"""
-               📊 TRADE CLOSED
-               Pair: {pair}
-               Side: {side}
+                message_text = f"""📊 TRADE CLOSED
 
-               Entry: {entry}
-               Exit: {current}
+Pair: {pair}
+Side: {side}
 
-               PnL: {round(pnl, 2)}%
-               Result: {result}
+Entry: {entry}
+Exit: {current}
 
-               Time: {uk_time}
-               """
+PnL: {round(pnl, 2)}%
+Result: {result}
+
+Time: {uk_time}
+"""
                 send_message(AUTO_CHAT_ID, message_text)
                 save_telegram_log(message_text, "AUTO_CHANNEL", "CLOSED")
                 close_trade(trade_id, current, round(pnl, 2))
