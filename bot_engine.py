@@ -9,7 +9,7 @@ from config import SYMBOLS
 from ai_engine import predict_signal
 
 print("✅ bot_engine LOADED")
-
+processing = {}
 recent_symbols = {}
 last_signal_time = {}
 
@@ -37,7 +37,18 @@ def send_message(chat_id, message):
 # =========================================
 def process_auto(symbol, timeframe, table_name):
 
-    df = get_data(symbol, timeframe, 40)
+    # ✅ LOCK START
+    key = f"{symbol}-{timeframe}"
+
+    if processing.get(key):
+        return
+
+    processing[key] = True
+
+    try:
+        df = get_data(symbol, timeframe, 40)
+        if df.empty:
+            return
     if df.empty:
         return
 
@@ -103,7 +114,8 @@ SL: {round(sl,4)}
     save_signal(table_name, symbol, signal_type, confidence, latest, "AI", volatility, trade_source="AUTO")
 
     save_telegram_log(message_text, "AUTO_CHANNEL", "SENT")
-
+    finally:
+        processing[key] = False
 
 # =========================================
 # ✅ MANUAL (NO TRADES)
