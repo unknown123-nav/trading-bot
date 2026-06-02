@@ -1,5 +1,7 @@
 import numpy as np
 from tensorflow.keras.models import load_model
+import os
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 # LOAD MODEL
 model = load_model("trading_ai_model.h5")
