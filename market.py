@@ -15,11 +15,9 @@ def get_data(symbol, timeframe='1m', limit=50):
         res = requests.get(url, params=params, timeout=5)
         data = res.json()
 
-        # ✅ Check response
         if data.get("code") != "0" or "data" not in data:
             return pd.DataFrame()
 
-        # ✅ Create DataFrame
         df = pd.DataFrame(
             data["data"],
             columns=["time", "open", "high", "low", "close", "vol", "v1", "v2", "confirm"]
@@ -28,12 +26,15 @@ def get_data(symbol, timeframe='1m', limit=50):
         if df.empty:
             return df
 
-        # ✅ Convert numeric safely
+        # ✅ SAFE numeric conversion
         numeric_cols = ["open", "high", "low", "close", "vol"]
         df[numeric_cols] = df[numeric_cols].apply(pd.to_numeric, errors="coerce")
 
-        # ✅ SAFE TIMESTAMP FIX (CRITICAL)
+        # ✅ ULTRA SAFE TIME FIX (KEY CHANGE)
         df["time"] = pd.to_numeric(df["time"], errors="coerce")
+
+        # ⚠️ CLIP extreme values BEFORE converting
+        df.loc[df["time"] > 2e12, "time"] = None
 
         df["time"] = pd.to_datetime(
             df["time"],
@@ -41,13 +42,11 @@ def get_data(symbol, timeframe='1m', limit=50):
             errors="coerce"
         )
 
-        # ✅ REMOVE BAD ROWS
+        # ✅ remove invalid rows
         df = df.dropna(subset=["time"])
 
-        # ✅ Sort newest first
+        # ✅ final clean
         df = df.sort_values(by="time", ascending=False).reset_index(drop=True)
-
-        # ✅ Keep clean columns
         df = df[["time", "open", "high", "low", "close", "vol"]]
 
         return df
