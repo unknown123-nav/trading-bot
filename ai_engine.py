@@ -78,7 +78,12 @@ def predict_signal(df, symbol, timeframe):
         )
 
         # ✅ BASE CONFIDENCE
-        confidence = 55 + (probability * 40)
+        confidence = 50 + (probability * 45)
+        if abs(delta) > 0.5:
+            confidence += 5
+
+        confidence = min(confidence, 95)
+        confidence = round(confidence, 2)
 
         # ✅ BOOST FOR STRONG MOVE
         if abs(delta) > 0.5:
