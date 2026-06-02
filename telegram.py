@@ -166,11 +166,11 @@ def check_replies():
 
             send_telegram(chat_id, reply)
             save_conversation(
-    message_id=update_id,
-    pair="GENERAL",
-    user_msg=text,
-    bot_msg=reply
-)
+                message_id=update_id,
+                pair="GENERAL",
+                user_msg=text,
+                bot_msg=reply
+            )
 
             print(f"✅ Replied to: {text}")
             time.sleep(2)
