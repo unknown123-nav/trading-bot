@@ -186,8 +186,12 @@ def close_trade(trade_id, current_price, pnl):
                 pnl = %s,
                 status = 'CLOSED',
                 closed_at = NOW()
-            WHERE id = %s
+            WHERE id = %s AND status = 'OPEN'
         """, (current_price, pnl, trade_id))
+
+        if cursor.rowcount == 0:
+            # ✅ Already closed → do nothing
+            return
 
         conn.commit()
         print(f"✅ Trade {trade_id} CLOSED")
@@ -198,6 +202,7 @@ def close_trade(trade_id, current_price, pnl):
     finally:
         cursor.close()
         conn.close()
+
 
 # =========================================
 # ✅ TELEGRAM FUNCTIONS
