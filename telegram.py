@@ -4,7 +4,8 @@ import time
 from db import (
     get_latest_signals,
     get_active_trades,
-    get_pnl_report
+    get_pnl_report,
+    save_conversation   
 )
 
 BOT_TOKEN = "8625282562:AAGNQZgdVK0mPYrXJ2GOAlc55HW74_5glak"
@@ -164,6 +165,12 @@ def check_replies():
             # =====================================
 
             send_telegram(chat_id, reply)
+            save_conversation(
+    message_id=update_id,
+    pair="GENERAL",
+    user_msg=text,
+    bot_msg=reply
+)
 
             print(f"✅ Replied to: {text}")
             time.sleep(2)
