@@ -37,7 +37,6 @@ def send_message(chat_id, message):
 # =========================================
 def process_auto(symbol, timeframe, table_name):
 
-    # ✅ LOCK START
     key = f"{symbol}-{timeframe}"
 
     if processing.get(key):
@@ -49,51 +48,48 @@ def process_auto(symbol, timeframe, table_name):
         df = get_data(symbol, timeframe, 40)
         if df.empty:
             return
-    if df.empty:
-        return
 
-    latest = float(df.iloc[0]['close'])
-    avg = float(df['close'].mean())
-    volatility = abs(latest - avg) / avg * 100
+        latest = float(df.iloc[0]['close'])
+        avg = float(df['close'].mean())
+        volatility = abs(latest - avg) / avg * 100
 
-    direction, ai_confidence = predict_signal(df, symbol, timeframe)
+        direction, ai_confidence = predict_signal(df, symbol, timeframe)
 
-    # ✅ SUPER STRICT RULES
-    if ai_confidence < 95:
-        return
-
-    if volatility < 2.0:
-        return
-
-    # ✅ GLOBAL LIMIT
-    symbol_key = f"{symbol}_global"
-    if symbol_key in recent_symbols:
-        if time.time() - recent_symbols[symbol_key] < 300:
+        # ✅ SUPER STRICT RULES
+        if ai_confidence < 95:
             return
 
-    signal_type = "LONG" if direction == "UP" else "SHORT"
-    direction_text = "UP" if signal_type == "LONG" else "DOWN"
+        if volatility < 2.0:
+            return
 
-    confidence = round((ai_confidence * 0.7) + (volatility * 20), 2)
-    confidence = max(60, min(confidence, 95))
+        # ✅ GLOBAL LIMIT
+        symbol_key = f"{symbol}_global"
+        if symbol_key in recent_symbols:
+            if time.time() - recent_symbols[symbol_key] < 300:
+                return
 
-    tp = latest * (1.01 if signal_type == "LONG" else 0.99)
-    sl = latest * (0.99 if signal_type == "LONG" else 1.01)
+        signal_type = "LONG" if direction == "UP" else "SHORT"
+        direction_text = "UP" if signal_type == "LONG" else "DOWN"
 
-    # ✅ CREATE TRADE FIRST
-    created = create_paper_trade(symbol, signal_type, latest, 1, timeframe, tp, sl)
+        confidence = round((ai_confidence * 0.7) + (volatility * 20), 2)
+        confidence = max(60, min(confidence, 95))
 
-    if not created:
-        print(f"❌ BLOCKED → {symbol} {timeframe}")
-        return
+        tp = latest * (1.01 if signal_type == "LONG" else 0.99)
+        sl = latest * (0.99 if signal_type == "LONG" else 1.01)
 
-    recent_symbols[symbol_key] = time.time()
+        created = create_paper_trade(symbol, signal_type, latest, 1, timeframe, tp, sl)
 
-    print(f"✅ REAL TRADE → {symbol} {timeframe}")
+        if not created:
+            print(f"❌ BLOCKED → {symbol} {timeframe}")
+            return
 
-    uk_time = get_uk_time().strftime("%H:%M:%S")
+        recent_symbols[symbol_key] = time.time()
 
-    message_text = f"""
+        print(f"✅ REAL TRADE → {symbol} {timeframe}")
+
+        uk_time = get_uk_time().strftime("%H:%M:%S")
+
+        message_text = f"""
 🤖 AUTO TRADE STARTED
 
 Pair: {symbol}
@@ -109,14 +105,19 @@ TP: {round(tp,4)}
 SL: {round(sl,4)}
 """
 
-    send_message(AUTO_CHAT_ID, message_text)
+        send_message(AUTO_CHAT_ID, message_text)
 
-    save_signal(table_name, symbol, signal_type, confidence, latest, "AI", volatility, trade_source="AUTO")
+        save_signal(table_name, symbol, signal_type, confidence, latest, "AI", volatility, trade_source="AUTO")
 
-    save_telegram_log(message_text, "AUTO_CHANNEL", "SENT")
+        save_telegram_log(message_text, "AUTO_CHANNEL", "SENT")
+
+    except Exception as e:
+        print(f"❌ AUTO ERROR → {symbol} {timeframe}: {e}")
+        time.sleep(1)
+
+
     finally:
         processing[key] = False
-
 # =========================================
 # ✅ MANUAL (NO TRADES)
 # =========================================
