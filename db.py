@@ -1,5 +1,6 @@
 import mysql.connector
 from config import DB_CONFIG
+from datetime import datetime
 
 # ✅ ALLOWED TABLES (protects SQL injection)
 ALLOWED_SIGNAL_TABLES = [
@@ -82,8 +83,7 @@ def create_paper_trade(symbol, side, entry, qty, timeframe, tp, sl):
         if row:
             trade_id, created_at = row
 
-            from datetime import datetime
-            diff = (datetime.utcnow() - created_at).total_seconds()
+            diff = (datetime.now() - created_at).total_seconds()
 
             # ✅ allow new trade if older than 5 minutes
             if diff < 300:
