@@ -107,7 +107,7 @@ def create_paper_trade(symbol, side, entry, qty, timeframe, tp, sl):
             diff = (datetime.now() - created_at).total_seconds()
 
             if diff < 300:
-                print(f"⚠️ Trade still active: {symbol} {timeframe}")
+                print(f"⚠️ BLOCKED → {symbol} {timeframe} (existing open trade)")
                 return False
 
         cursor.execute("""
