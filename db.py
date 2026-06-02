@@ -8,6 +8,8 @@ ALLOWED_SIGNAL_TABLES = [
     "signals_15M", "signals_30M", "signals_1H"
 ]
 
+def get_latest_signals():
+    return []
 # =========================================
 # ✅ CREATE CONNECTION
 # =========================================
