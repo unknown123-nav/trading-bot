@@ -2,7 +2,7 @@ import mysql.connector
 from config import DB_CONFIG
 from datetime import datetime
 
-# ✅ ALLOWED TABLES
+
 ALLOWED_SIGNAL_TABLES = [
     "signals_1M", "signals_3M", "signals_5M",
     "signals_15M", "signals_30M", "signals_1H"
@@ -48,7 +48,7 @@ def get_latest_signals(source=None):
         cursor.close()
         conn.close()
 # =========================================
-# ✅ SAVE SIGNAL
+#  SAVE SIGNAL
 # =========================================
 def save_signal(table, pair, direction, confidence, entry, pattern, volatility, trade_source):
 
@@ -84,18 +84,16 @@ def save_signal(table, pair, direction, confidence, entry, pattern, volatility, 
         ))
 
         conn.commit()
-        print(f"✅ Saved signal → {table} | {pair}")
+        print(f" Saved signal → {table} | {pair}")
 
     except Exception as e:
-        print("❌ Signal save error:", e)
+        print(" Signal save error:", e)
 
     finally:
         cursor.close()
         conn.close()
 
-# =========================================
-# ✅ CREATE PAPER TRADE (FIXED ✅)
-# =========================================
+
 def create_paper_trade(symbol, side, entry, qty, timeframe, tp, sl):
 
     conn = get_connection()
@@ -115,7 +113,7 @@ def create_paper_trade(symbol, side, entry, qty, timeframe, tp, sl):
             diff = (datetime.now() - created_at).total_seconds()
 
             if diff < 300:
-                print(f"⚠️ BLOCKED → {symbol} {timeframe} (existing open trade)")
+                print(f" BLOCKED → {symbol} {timeframe} (existing open trade)")
                 return False
 
         cursor.execute("""
@@ -144,11 +142,11 @@ def create_paper_trade(symbol, side, entry, qty, timeframe, tp, sl):
         ))
 
         conn.commit()
-        print(f"✅ Trade created → {symbol} {timeframe}")
-        return True   # ✅ CRITICAL FIX
+        print(f" Trade created → {symbol} {timeframe}")
+        return True   
 
     except Exception as e:
-        print("❌ Trade creation error:", e)
+        print(" Trade creation error:", e)
         return False
 
     finally:
@@ -156,7 +154,7 @@ def create_paper_trade(symbol, side, entry, qty, timeframe, tp, sl):
         conn.close()
 
 # =========================================
-# ✅ GET OPEN TRADES
+#  GET OPEN TRADES
 # =========================================
 def get_open_trades():
     conn = get_connection()
@@ -179,7 +177,7 @@ def get_open_trades():
         conn.close()
 
 # =========================================
-# ✅ CLOSE TRADE
+#  CLOSE TRADE
 # =========================================
 def close_trade(trade_id, current_price, pnl):
 
@@ -198,11 +196,11 @@ def close_trade(trade_id, current_price, pnl):
         """, (current_price, pnl, trade_id))
 
         if cursor.rowcount == 0:
-            # ✅ Already closed → do nothing
+            
             return
 
         conn.commit()
-        print(f"✅ Trade {trade_id} CLOSED")
+        print(f" Trade {trade_id} CLOSED")
 
     except Exception as e:
         print("❌ Close trade error:", e)
@@ -213,7 +211,7 @@ def close_trade(trade_id, current_price, pnl):
 
 
 # =========================================
-# ✅ TELEGRAM FUNCTIONS
+#  TELEGRAM FUNCTIONS
 # =========================================
 def get_active_trades():
     conn = get_connection()
@@ -279,6 +277,24 @@ def save_conversation(message_id, pair, user_msg, bot_msg):
     except Exception as e:
         print("❌ Conversation save error:", e)
 
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_manual_trades():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            SELECT pair, direction
+            FROM manual_trades
+            WHERE status = 'OPEN'
+        """)
+        return cursor.fetchall()
+    except Exception as e:
+        print("Manual trade error:", e)
+        return []
     finally:
         cursor.close()
         conn.close()
