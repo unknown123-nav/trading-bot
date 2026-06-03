@@ -52,17 +52,15 @@ def process_auto(symbol, timeframe, table_name):
         latest = float(df.iloc[0]['close'])
         avg = float(df['close'].mean())
         volatility = abs(latest - avg) / avg * 100
-
         direction, ai_confidence = predict_signal(df, symbol, timeframe)
-
-       if ai_confidence < 85:
-           print(f"SKIP → {symbol} {timeframe} | Low AI: {round(ai_confidence,2)}")
-           return
-           
-       if volatility < 1.2:
+        if ai_confidence < 85:
+            print(f"SKIP → {symbol} {timeframe} | Low AI: {round(ai_confidence,2)}")
+            return
+        if volatility < 1.2:
            print(f" SKIP → {symbol} {timeframe} | Low Vol: {round(volatility,2)}")
            return
 
+                
         #  GLOBAL LIMIT
         symbol_key = f"{symbol}_global"
         if symbol_key in recent_symbols:
