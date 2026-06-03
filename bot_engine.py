@@ -60,7 +60,7 @@ def process_auto(symbol, timeframe, table_name):
         print(f" {symbol} {timeframe} → AI: {round(ai_confidence,2)} | Vol: {round(volatility,2)}")
         if ai_confidence < 85 or volatility < 1.2:
             reason = []
-            if ai_confidence < 85:
+            if ai_confidence < 75:
                 reason.append(f"AI LOW ({round(ai_confidence,2)})")
                 
             if volatility < 1.2:
@@ -148,7 +148,7 @@ def process_manual(symbol, timeframe, table_name):
     volatility = abs(latest - avg) / avg * 100
 
     direction = "UP" if latest > avg else "DOWN"
-    if volatility < 2.8:
+    if volatility < 3.5:
         print(f" MANUAL SKIP → {symbol} {timeframe} | Vol: {round(volatility,2)}")
         return
 
