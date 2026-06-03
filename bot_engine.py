@@ -148,7 +148,7 @@ def process_manual(symbol, timeframe, table_name):
     volatility = abs(latest - avg) / avg * 100
 
     direction = "UP" if latest > avg else "DOWN"
-    if volatility < 4.7 :
+    if volatility < 5.6 :
         print(f" MANUAL SKIP → {symbol} {timeframe} | Vol: {round(volatility,2)}")
         return
 
