@@ -9,36 +9,44 @@ ALLOWED_SIGNAL_TABLES = [
 ]
 
 # =========================================
-# ✅ CONNECTION
+#  CONNECTION
 # =========================================
 def get_connection():
     return mysql.connector.connect(**DB_CONFIG)
 
 # =========================================
-# ✅ GET LATEST SIGNALS (FOR TELEGRAM)
+# GET LATEST SIGNALS (FOR TELEGRAM)
 # =========================================
-def get_latest_signals():
+def get_latest_signals(source=None):
     try:
         conn = get_connection()
         cursor = conn.cursor()
 
-        cursor.execute("""
-            SELECT pair, direction, confidence
-            FROM signals_15M
-            ORDER BY id DESC
-            LIMIT 5
-        """)
+        if source:
+            cursor.execute("""
+                SELECT pair, direction, confidence
+                FROM signals_15M
+                WHERE trade_source = %s
+                ORDER BY id DESC
+                LIMIT 5
+            """, (source,))
+        else:
+            cursor.execute("""
+                SELECT pair, direction, confidence
+                FROM signals_15M
+                ORDER BY id DESC
+                LIMIT 5
+            """)
 
         return cursor.fetchall()
 
     except Exception as e:
-        print("❌ Latest signal error:", e)
+        print(" Latest signal error:", e)
         return []
 
     finally:
         cursor.close()
         conn.close()
-
 # =========================================
 # ✅ SAVE SIGNAL
 # =========================================
