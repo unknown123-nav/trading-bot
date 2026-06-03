@@ -48,7 +48,7 @@ def process_auto(symbol, timeframe, table_name):
         print(f"Checking → {symbol} {timeframe}")
         df = get_data(symbol, timeframe, 40)
         if df.empty:
-            print(f"❌ NO DATA → {symbol} {timeframe}")
+            print(f" NO DATA → {symbol} {timeframe}")
             return
 
         latest = float(df.iloc[0]['close'])
@@ -58,12 +58,12 @@ def process_auto(symbol, timeframe, table_name):
         volatility = abs(latest - avg) / avg * 100
         direction, ai_confidence = predict_signal(df, symbol, timeframe)
         print(f" {symbol} {timeframe} → AI: {round(ai_confidence,2)} | Vol: {round(volatility,2)}")
-        if ai_confidence < 85 or volatility < 1.2:
+        if ai_confidence < 80 or volatility < 3:
             reason = []
-            if ai_confidence < 70:
+            if ai_confidence < 80:
                 reason.append(f"AI LOW ({round(ai_confidence,2)})")
                 
-            if volatility < 0.7:
+            if volatility < 3:
                 reason.append(f"VOL LOW ({round(volatility,2)}%)")
                 
             print(f" SKIPPED → {symbol} {timeframe} | {' & '.join(reason)}")
@@ -77,6 +77,12 @@ def process_auto(symbol, timeframe, table_name):
 
         signal_type = "LONG" if direction == "UP" else "SHORT"
         direction_text = "UP" if signal_type == "LONG" else "DOWN"
+        open_trades = get_open_trades()
+        for t in open_trades:
+            if t[1] == symbol and t[2] == signal_type:
+                print(f" ALREADY OPEN → {symbol} {signal_type}")
+                return
+
         confidence = round((ai_confidence * 0.8) + (volatility * 10), 2)
         confidence = min(confidence, 99)
 
@@ -207,10 +213,10 @@ def monitor_trades():
                 continue
 
             current = float(df.iloc[0]['close'])
+
             GBP_RATE = 0.74
             entry_gbp = entry * GBP_RATE
             exit_gbp = current * GBP_RATE
-
 
             pnl = (
                 (current - entry) / entry * 100
@@ -221,14 +227,13 @@ def monitor_trades():
             should_close = False
 
             if (side == "LONG" and current >= tp) or (side == "SHORT" and current <= tp):
-                print(f" TP HIT → {pair}")
+                print(f"TP HIT → {pair}")
                 should_close = True
 
             elif (side == "LONG" and current <= sl) or (side == "SHORT" and current >= sl):
-                print(f" SL HIT → {pair}")
+                print(f"SL HIT → {pair}")
                 should_close = True
 
-            #  SAFETY CHECK (CRITICAL)
             if should_close:
                 conn = None
                 try:
@@ -236,39 +241,45 @@ def monitor_trades():
                     conn = get_connection()
                     cursor = conn.cursor()
 
-                    cursor.execute("""
-                        SELECT status FROM paper_trades WHERE id = %s
-                    """, (trade_id,))
+                    cursor.execute(
+                        "SELECT status FROM paper_trades WHERE id = %s",
+                        (trade_id,)
+                    )
                     status = cursor.fetchone()
 
                     if not status or status[0] != "OPEN":
-                        continue  
+                        continue
 
                 finally:
                     if conn:
                         conn.close()
 
-                result = "WIN " if pnl > 0 else "LOSS "
+                # ✅ ✅ CORRECT BLOCK
+                result = "WIN" if pnl > 0 else "LOSS"
                 uk_time = get_uk_time().strftime("%H:%M:%S")
-                message_text = f"""📊 TRADE CLOSED
+
+                message_text = f"""TRADE CLOSED
 
 Pair: {pair}
 Side: {side}
 
-Entry: £{round(gbp_price, 2)} ({latest} USDT)
-Exit: {current}
+Entry: £{round(entry_gbp, 2)}
+Exit: £{round(exit_gbp, 2)}
 
 PnL: {round(pnl, 2)}%
 Result: {result}
 
 Time: {uk_time}
 """
+
+                print("Sending close message...")  
                 send_message(AUTO_CHAT_ID, message_text)
+
                 save_telegram_log(message_text, "AUTO_CHANNEL", "CLOSED")
                 close_trade(trade_id, current, round(pnl, 2))
 
         except Exception as e:
-            print(" Monitor error:", e)
+            print("Monitor error:", e)
 # =========================================
 #  RUN BOT
 # =========================================
