@@ -7,8 +7,8 @@ DB_CONFIG = {
 }
 
 SYMBOLS = [
-    "BTC-USDT",
-    "ETH-USDT",
-    "SOL-USDT"
+    "BTC-GBP",
+    "ETH-GBP",
+    "SOL-GBP"
 ]
 
