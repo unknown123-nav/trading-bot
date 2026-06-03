@@ -7,10 +7,6 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 model = load_model("trading_ai_model_v2.h5")
 print(" AI MODEL V2 LOADED")
 
-
-# =========================================
-#  CORE MODEL PREDICTION
-# =========================================
 def predict_trade(pair, timeframe, direction, confidence, delta, percentile, pnl):
     try:
         pair_map = {
