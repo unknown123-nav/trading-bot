@@ -8,7 +8,7 @@ from db import create_paper_trade, get_open_trades, close_trade, save_signal, sa
 from config import SYMBOLS
 from ai_engine import predict_signal
 
-print("✅ bot_engine LOADED")
+print("bot_engine LOADED")
 processing = {}
 recent_symbols = {}
 last_signal_time = {}
@@ -22,7 +22,7 @@ MANUAL_TFS = ["30m", "1H"]
 def get_uk_time():
     return datetime.now(pytz.timezone("Europe/London"))
 
-# ✅ TELEGRAM
+# TELEGRAM
 def send_message(chat_id, message):
     try:
         requests.post(
@@ -30,10 +30,10 @@ def send_message(chat_id, message):
             json={"chat_id": chat_id, "text": message}
         )
     except:
-        print("❌ Telegram failed")
+        print(" Telegram failed")
 
 # =========================================
-# ✅ AUTO (REAL TRADES ONLY)
+#  AUTO (REAL TRADES ONLY)
 # =========================================
 def process_auto(symbol, timeframe, table_name):
 
@@ -61,7 +61,7 @@ def process_auto(symbol, timeframe, table_name):
         if volatility < 1.2:
             return
 
-        # ✅ GLOBAL LIMIT
+        #  GLOBAL LIMIT
         symbol_key = f"{symbol}_global"
         if symbol_key in recent_symbols:
             if time.time() - recent_symbols[symbol_key] < 300:
@@ -112,14 +112,14 @@ SL: {round(sl,4)}
         save_telegram_log(message_text, "AUTO_CHANNEL", "SENT")
 
     except Exception as e:
-        print(f"❌ AUTO ERROR → {symbol} {timeframe}: {e}")
+        print(f" AUTO ERROR → {symbol} {timeframe}: {e}")
         time.sleep(1)
 
 
     finally:
         processing[key] = False
 # =========================================
-# ✅ MANUAL (NO TRADES)
+#  MANUAL (NO TRADES)
 # =========================================
 def process_manual(symbol, timeframe, table_name):
 
@@ -171,7 +171,7 @@ Time: {uk_time}
 
 
 # =========================================
-# ✅ MONITOR TRADES
+#  MONITOR TRADES
 # =========================================
 def monitor_trades():
 
@@ -209,7 +209,7 @@ def monitor_trades():
                 print(f" SL HIT → {pair}")
                 should_close = True
 
-            # ✅ SAFETY CHECK (CRITICAL)
+            #  SAFETY CHECK (CRITICAL)
             if should_close:
                 conn = None
                 try:
@@ -223,7 +223,7 @@ def monitor_trades():
                     status = cursor.fetchone()
 
                     if not status or status[0] != "OPEN":
-                        continue  # ✅ already closed → skip
+                        continue  
 
                 finally:
                     if conn:
@@ -249,9 +249,9 @@ Time: {uk_time}
                 close_trade(trade_id, current, round(pnl, 2))
 
         except Exception as e:
-            print("❌ Monitor error:", e)
+            print(" Monitor error:", e)
 # =========================================
-# ✅ RUN BOT
+#  RUN BOT
 # =========================================
 def run_bot():
 
