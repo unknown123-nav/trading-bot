@@ -48,6 +48,7 @@ def process_auto(symbol, timeframe, table_name):
         print(f"Checking → {symbol} {timeframe}")
         df = get_data(symbol, timeframe, 40)
         if df.empty:
+            print(f"❌ NO DATA → {symbol} {timeframe}")
             return
 
         latest = float(df.iloc[0]['close'])
