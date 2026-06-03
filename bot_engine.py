@@ -52,6 +52,8 @@ def process_auto(symbol, timeframe, table_name):
             return
 
         latest = float(df.iloc[0]['close'])
+        GBP_RATE = 0.74 
+        gbp_price = latest * GBP_RATE
         avg = float(df['close'].mean())
         volatility = abs(latest - avg) / avg * 100
         direction, ai_confidence = predict_signal(df, symbol, timeframe)
@@ -82,6 +84,7 @@ def process_auto(symbol, timeframe, table_name):
         tp = latest * (1.01 if signal_type == "LONG" else 0.99)
         sl = latest * (0.99 if signal_type == "LONG" else 1.01)
 
+
         created = create_paper_trade(symbol, signal_type, latest, 1, timeframe, tp, sl)
 
         if not created:
@@ -94,20 +97,23 @@ def process_auto(symbol, timeframe, table_name):
 
         uk_time = get_uk_time().strftime("%H:%M:%S")
 
+        tp_gbp = tp * GBP_RATE
+        sl_gbp = sl * GBP_RATE
+
         message_text = f"""
 🤖 AUTO TRADE STARTED
 
 Pair: {symbol}
 Direction: {direction_text}
-Entry: {latest}
+Entry: £{round(gbp_price, 2)} ({latest} USDT)
 
 Confidence: {confidence}%
 Volatility: {round(volatility,2)}%
 Timeframe: {timeframe}
 Time: {uk_time}
 
-TP: {round(tp,4)}
-SL: {round(sl,4)}
+TP: £{round(tp_gbp, 2)}
+SL: £{round(sl_gbp, 2)}
 """
 
         send_message(AUTO_CHAT_ID, message_text)
@@ -136,6 +142,8 @@ def process_manual(symbol, timeframe, table_name):
         return
 
     latest = float(df.iloc[0]['close'])
+    GBP_RATE = 0.74  # static conversion (you can change later)
+    gbp_price = latest * GBP_RATE
     avg = float(df['close'].mean())
     volatility = abs(latest - avg) / avg * 100
 
@@ -199,6 +207,10 @@ def monitor_trades():
                 continue
 
             current = float(df.iloc[0]['close'])
+            GBP_RATE = 0.74
+            entry_gbp = entry * GBP_RATE
+            exit_gbp = current * GBP_RATE
+
 
             pnl = (
                 (current - entry) / entry * 100
@@ -243,7 +255,7 @@ def monitor_trades():
 Pair: {pair}
 Side: {side}
 
-Entry: {entry}
+Entry: £{round(gbp_price, 2)} ({latest} USDT)
 Exit: {current}
 
 PnL: {round(pnl, 2)}%
