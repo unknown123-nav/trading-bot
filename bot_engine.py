@@ -69,9 +69,8 @@ def process_auto(symbol, timeframe, table_name):
 
         signal_type = "LONG" if direction == "UP" else "SHORT"
         direction_text = "UP" if signal_type == "LONG" else "DOWN"
-
-       confidence = round((ai_confidence * 0.8) + (volatility * 10), 2)
-       confidence = min(confidence, 99)
+        confidence = round((ai_confidence * 0.8) + (volatility * 10), 2)
+        confidence = min(confidence, 99)
 
 
         tp = latest * (1.01 if signal_type == "LONG" else 0.99)
