@@ -59,7 +59,7 @@ def process_auto(symbol, timeframe, table_name):
         if ai_confidence < 95:
             return
 
-        if volatility < 2.0:
+        if volatility < 1.5:
             return
 
         # ✅ GLOBAL LIMIT
@@ -80,12 +80,12 @@ def process_auto(symbol, timeframe, table_name):
         created = create_paper_trade(symbol, signal_type, latest, 1, timeframe, tp, sl)
 
         if not created:
-            print(f"❌ BLOCKED → {symbol} {timeframe}")
+            print(f" BLOCKED → {symbol} {timeframe}")
             return
 
         recent_symbols[symbol_key] = time.time()
 
-        print(f"✅ REAL TRADE → {symbol} {timeframe}")
+        print(f" REAL TRADE → {symbol} {timeframe}")
 
         uk_time = get_uk_time().strftime("%H:%M:%S")
 
@@ -137,10 +137,10 @@ def process_manual(symbol, timeframe, table_name):
     direction, ai_confidence = predict_signal(df, symbol, timeframe)
 
     # ✅ STRICT MANUAL RULES
-    if ai_confidence < 95:
+    if ai_confidence < 90:
         return
 
-    if volatility < 4.5:
+    if volatility < 3.8:
         return
 
     key = f"{symbol}_{timeframe}_MANUAL"
