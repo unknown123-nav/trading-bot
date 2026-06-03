@@ -35,8 +35,7 @@ def predict_trade(pair, timeframe, direction, confidence, delta, percentile, pnl
             direction_map.get(direction, 0),
             float(confidence),
             float(delta),
-            float(percentile),
-            float(pnl)
+            float(percentile)
         ]])
 
         prediction = model.predict(features, verbose=0)
