@@ -5,15 +5,17 @@ from db import (
     get_latest_signals,
     get_active_trades,
     get_pnl_report,
-    save_conversation   
+    save_conversation
 )
+
+from config import AUTO_CHAT_ID, MANUAL_CHAT_ID
 
 BOT_TOKEN = "8625282562:AAGNQZgdVK0mPYrXJ2GOAlc55HW74_5glak"
 LAST_UPDATE_ID = None
 
 
 # =========================================
-# ✅ SEND TELEGRAM MESSAGE
+# SEND TELEGRAM MESSAGE
 # =========================================
 def send_telegram(chat_id, message):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
@@ -23,13 +25,13 @@ def send_telegram(chat_id, message):
             "chat_id": chat_id,
             "text": message
         })
-        print("✅ Telegram sent")
+        print("Telegram sent")
     except Exception as ex:
         print("Telegram error:", ex)
 
 
 # =========================================
-# ✅ TELEGRAM ENGINE
+# TELEGRAM ENGINE
 # =========================================
 def check_replies():
 
@@ -44,20 +46,17 @@ def check_replies():
         response = requests.get(url, timeout=10)
         data = response.json()
 
-
         if not data.get("ok"):
             return
 
         updates = data.get("result", [])
-
         if not updates:
             return
 
         for update in updates:
 
             update_id = update["update_id"]
-
-            LAST_UPDATE_ID = update_id   
+            LAST_UPDATE_ID = update_id
 
             message = update.get("message", {})
             if not message:
@@ -69,102 +68,119 @@ def check_replies():
             text = message.get("text", "").strip().lower()
             chat_id = message["chat"]["id"]
 
-
             if not text:
                 continue
 
-            print(f"📩 Received: {text}")
+            print(f"Received: {text}")
 
             # =====================================
-            # ✅ COMMANDS
+            # CHANNEL TYPE
+            # =====================================
+            is_auto = str(chat_id) == str(AUTO_CHAT_ID)
+            is_manual = str(chat_id) == str(MANUAL_CHAT_ID)
+
+            # =====================================
+            # COMMANDS
             # =====================================
 
             if "help" in text:
                 reply = (
-                    "Hey! Here's what I can do:\n\n"
-                    "• status — check if everything's running\n"
-                    "• signals — see the latest trade signals\n"
-                    "• trades — view your active trades\n"
-                    "• pnl — check your performance\n"
-                   "• ping — test connection speed\n"
-                   "• ai — info about the AI model\n\n"
-                   "Just type any command to get started."
+                    "Available commands:\n\n"
+                    "status - system status\n"
+                    "signals - latest signals\n"
+                    "trades - active trades\n"
+                    "pnl - performance\n"
+                    "ping - connectivity test\n"
+                    "ai - AI system info"
                 )
+
             elif "status" in text:
                 reply = (
-                    "All good on my end 👍\n\n"
-                    "• AI Engine: running\n"
-                    "• Trading bots: active\n"
-                    "• Database: connected\n"
-                    "• Cloud: online\n\n"
-                    "Everything looks healthy."
+                    "System status:\n\n"
+                    "AI Engine: running\n"
+                    "Trading engine: active\n"
+                    "Database: connected\n"
+                    "Cloud: online"
                 )
 
+            # =====================================
+            # SIGNALS
+            # =====================================
             elif "signal" in text:
-                signals = get_latest_signals()
+
+                if is_auto:
+                    signals = get_latest_signals("AUTO")
+                    reply = "AUTO SIGNALS\n\n"
+                else:
+                    signals = get_latest_signals("MANUAL")
+                    reply = "MANUAL SIGNALS\n\n"
 
                 if not signals:
-                    reply = "⚠️ No live signals available"
+                    reply += "No signals available"
                 else:
-                    reply = "🚨 *LATEST AI SIGNALS*\n\n"
                     for s in signals:
-                        reply += f"{s[0]} → {s[1]} ({round(float(s[2]),2)}%)\n"
-                    reply += "\n⚡ Real-time market scanning active"
+                        pair = s[0]
+                        direction = s[1]
+                        confidence = round(float(s[2]), 2)
 
+                        reply += f"{pair} -> {direction} ({confidence}%)\n"
+
+            # =====================================
+            # TRADES
+            # =====================================
             elif "trade" in text:
-                trades = get_active_trades()
+
+                if is_auto:
+                    trades = get_active_trades()  # AI trades
+                    reply = "AUTO TRADES\n\n"
+                else:
+                    
+                    from db import get_manual_trades
+                    trades = get_manual_trades()
+                    reply = "MANUAL TRADES\n\n"
 
                 if not trades:
-                    reply = "⚠️ No active trades"
+                    reply += "No active trades"
                 else:
-                    reply = "📂 *ACTIVE TRADES*\n\n"
                     for t in trades:
-                        reply += f"{t[0]} → {t[1]}\n"
-                    reply += "\n📡 Monitoring live positions"
+                        reply += f"{t[0]} -> {t[1]}\n"
 
+            # =====================================
+            # PNL
+            # =====================================
             elif "pnl" in text:
                 report = get_pnl_report()
 
                 if not report:
-                    reply = "⚠️ Unable to fetch performance data"
+                    reply = "Performance data unavailable"
                 else:
                     reply = (
-                        "💰 *PERFORMANCE REPORT*\n\n"
-                        f"📈 Win Rate: {report['win_rate']}%\n"
-                        f"📊 Active Trades: {report['active_trades']}\n"
-                        f"⚡ Total Signals: {report['signals']}\n"
-                        f"🎯 AI Accuracy: {report['ai_accuracy']}%\n\n"
-                        "🚀 Real-time analytics running"
+                        "Performance report:\n\n"
+                        f"Win Rate: {report['win_rate']}%\n"
+                        f"Active Trades: {report['active_trades']}\n"
+                        f"Total Signals: {report['signals']}\n"
+                        f"AI Accuracy: {report['ai_accuracy']}%"
                     )
 
             elif "ping" in text:
-                reply = (
-                    "🏓 *PING RESPONSE*\n\n"
-                    "✅ Bot Responding\n"
-                    "✅ Network Stable\n"
-                    "☁️ Cloud Active"
-                )
+                reply = "System responding. Network stable."
 
             elif "ai" in text:
                 reply = (
-                    "🧠 *AI ENGINE INFO*\n\n"
-                    "✅ Neural Model Integrated\n"
-                    "✅ Signal Confidence Engine\n"
-                    "✅ Multi-Timeframe Analysis\n\n"
-                    "⚡ Hybrid AI trading system active"
+                    "AI System:\n\n"
+                    "Model: trading_ai_model_v2\n"
+                    "Type: classification\n"
+                    "Multi-timeframe analysis enabled"
                 )
 
             else:
-                reply = (
-                    "❌ Unknown command\n\n"
-                    "👉 Type 'help' to see available commands"
-                )
+                reply = "Unknown command. Type 'help' for options."
 
             # =====================================
-            # ✅ SEND RESPONSE
+            # SEND RESPONSE
             # =====================================
-
             send_telegram(chat_id, reply)
+
             save_conversation(
                 message_id=update_id,
                 pair="GENERAL",
@@ -172,8 +188,8 @@ def check_replies():
                 bot_msg=reply
             )
 
-            print(f"✅ Replied to: {text}")
-            time.sleep(2)
+            print(f"Replied to: {text}")
+            time.sleep(1)
 
     except Exception as e:
         print("Telegram error:", e)
