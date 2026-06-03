@@ -55,11 +55,13 @@ def process_auto(symbol, timeframe, table_name):
 
         direction, ai_confidence = predict_signal(df, symbol, timeframe)
 
-        if ai_confidence < 85:
-            return
-
-        if volatility < 1.2:
-            return
+       if ai_confidence < 85:
+           print(f"SKIP → {symbol} {timeframe} | Low AI: {round(ai_confidence,2)}")
+           return
+           
+       if volatility < 1.2:
+           print(f" SKIP → {symbol} {timeframe} | Low Vol: {round(volatility,2)}")
+           return
 
         #  GLOBAL LIMIT
         symbol_key = f"{symbol}_global"
@@ -134,8 +136,10 @@ def process_manual(symbol, timeframe, table_name):
     volatility = abs(latest - avg) / avg * 100
 
     direction = "UP" if latest > avg else "DOWN"
-    if volatility < 3.0:
+    if volatility < 2.8:
+        print(f" MANUAL SKIP → {symbol} {timeframe} | Vol: {round(volatility,2)}")
         return
+
     confidence = round(min(95, 50 + (volatility * 10)), 2)
 
     key = f"{symbol}_{timeframe}_MANUAL"
