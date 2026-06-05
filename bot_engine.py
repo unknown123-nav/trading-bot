@@ -22,6 +22,41 @@ MANUAL_TFS = ["30m", "1H"]
 def get_uk_time():
     return datetime.now(pytz.timezone("Europe/London"))
 
+def detect_candle_pattern(df):
+    open_price = df.iloc[0]['open']
+    close_price = df.iloc[0]['close']
+    high = df.iloc[0]['high']
+    low = df.iloc[0]['low']
+
+    body = abs(close_price - open_price)
+    range_ = high - low
+
+    if range_ == 0:
+        return "Flat"
+
+    # Doji
+    if body <= (range_ * 0.1):
+        return "Doji"
+
+    # Bullish / Bearish Engulfing (basic)
+    if len(df) > 1:
+        prev_open = df.iloc[1]['open']
+        prev_close = df.iloc[1]['close']
+
+        # Bullish engulfing
+        if close_price > open_price and prev_close < prev_open:
+            return "Bullish Engulfing"
+
+        # Bearish engulfing
+        if close_price < open_price and prev_close > prev_open:
+            return "Bearish Engulfing"
+
+    # Basic trend candle
+    if close_price > open_price:
+        return "Bullish Candle"
+    else:
+        return "Bearish Candle"
+        
 # TELEGRAM
 def send_message(chat_id, message):
     try:
@@ -57,6 +92,7 @@ def process_auto(symbol, timeframe, table_name):
         avg = float(df['close'].mean())
         volatility = abs(latest - avg) / avg * 100
         direction, ai_confidence = predict_signal(df, symbol, timeframe)
+        candle_type = detect_candle_pattern(df)
         print(f" {symbol} {timeframe} → AI: {round(ai_confidence,2)} | Vol: {round(volatility,2)}")
         if ai_confidence < 80 or volatility < 3:
             reason = []
@@ -111,6 +147,7 @@ def process_auto(symbol, timeframe, table_name):
 
 Pair: {symbol}
 Direction: {direction_text}
+candle_type: {candle_type}
 Entry: £{round(gbp_price, 2)} ({latest} USDT)
 
 Confidence: {confidence}%
@@ -124,7 +161,7 @@ SL: £{round(sl_gbp, 2)}
 
         send_message(AUTO_CHAT_ID, message_text)
 
-        save_signal(table_name, symbol, signal_type, confidence, latest, "AI", volatility, trade_source="AUTO")
+        save_signal(table_name, symbol, signal_type, confidence, latest,candle_type, "AI", volatility, trade_source="AUTO")
 
         save_telegram_log(message_text, "AUTO_CHANNEL", "SENT")
 
@@ -148,7 +185,9 @@ def process_manual(symbol, timeframe, table_name):
         return
 
     latest = float(df.iloc[0]['close'])
-    GBP_RATE = 0.74  # static conversion (you can change later)
+    candle_type = detect_candle_pattern(df)
+
+    GBP_RATE = 0.74  
     gbp_price = latest * GBP_RATE
     avg = float(df['close'].mean())
     volatility = abs(latest - avg) / avg * 100
@@ -177,6 +216,7 @@ def process_manual(symbol, timeframe, table_name):
 
 Pair: {symbol}
 Direction: {direction_text}
+candle_type: {candle_type}
 Timeframe: {timeframe}
 
 Volatility: {round(volatility,2)}%
@@ -186,7 +226,7 @@ Time: {uk_time}
 
     send_message(MANUAL_CHAT_ID, message_text)
 
-    save_signal(table_name, symbol, signal_type, confidence, latest, "AI", volatility, trade_source="MANUAL")
+    save_signal(table_name, symbol, signal_type, confidence, latest,candle_type, volatility, trade_source="MANUAL")
 
     save_telegram_log(message_text, "MANUAL_CHANNEL", "SENT")
 
