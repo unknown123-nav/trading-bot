@@ -93,14 +93,36 @@ def process_auto(symbol, timeframe, table_name):
         avg = float(df['close'].mean())
         volatility = abs(latest - avg) / avg * 100
         direction, ai_confidence = predict_signal(df, symbol, timeframe)
-        channel_high = df['high'].head(20).max()
-        channel_low = df['low'].head(20).min()
-        channel_range = channel_high - channel_low
-        if channel_range == 0:
+        
+        sma10 = df['close'].head(10).mean()
+        sma30 = df['close'].head(30).mean()
+        trend_strength = abs(
+            sma10 - sma30
+        ) / sma30 * 100
+        if trend_strength < 0.20:
+            print(
+                f"FLAT MARKET → {symbol} {timeframe}"
+            )
             return
-            
+        upper_line = (
+            df['high']
+            .head(20)
+            .rolling(5)
+            .mean()
+            .iloc[0]
+        )
+        lower_line = (
+            df['low']
+            .head(20)
+            .rolling(5)
+            .mean()
+            .iloc[0]
+        )
+        channel_range = upper_line - lower_line
+        if channel_range <= 0:
+            return
         channel_position = (
-            latest - channel_low
+            latest - lower_line
         ) / channel_range
         if direction == "UP" and channel_position > 0.30:
             print(
@@ -113,6 +135,8 @@ def process_auto(symbol, timeframe, table_name):
                 f"ROI FAILED SHORT → {symbol} {timeframe}"
             )
             return
+
+        
         candle_type = detect_candle_pattern(df)
         print(f" {symbol} {timeframe} → AI: {round(ai_confidence,2)} | Vol: {round(volatility,2)}")
         if ai_confidence < 80 or volatility < 3:
@@ -144,9 +168,13 @@ def process_auto(symbol, timeframe, table_name):
         confidence = min(confidence, 99)
 
 
-        tp = latest * (1.01 if signal_type == "LONG" else 0.99)
-        sl = latest * (0.99 if signal_type == "LONG" else 1.01)
-
+        risk = volatility / 100
+        if signal_type == "LONG":
+            tp = latest * (1 + risk)
+            sl = latest * (1 - risk / 2)
+        else:
+            tp = latest * (1 - risk)
+            sl = latest * (1 + risk / 2)
 
         created = create_paper_trade(symbol, signal_type, latest, 1, timeframe, tp, sl)
 
