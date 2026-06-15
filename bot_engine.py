@@ -109,14 +109,16 @@ def process_auto(symbol, timeframe, table_name):
             .head(20)
             .rolling(5)
             .mean()
-            .iloc[0]
+            .dropna()
+            .iloc[-1]
         )
         lower_line = (
             df['low']
             .head(20)
             .rolling(5)
             .mean()
-            .iloc[0]
+            .dropna()
+            .iloc[-1]
         )
         channel_range = upper_line - lower_line
         if channel_range <= 0:
