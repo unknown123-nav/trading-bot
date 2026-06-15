@@ -87,11 +87,32 @@ def process_auto(symbol, timeframe, table_name):
             return
 
         latest = float(df.iloc[0]['close'])
-        GBP_RATE = 0.74 
+        GBP_RATE = 0.74
         gbp_price = latest * GBP_RATE
+        
         avg = float(df['close'].mean())
         volatility = abs(latest - avg) / avg * 100
         direction, ai_confidence = predict_signal(df, symbol, timeframe)
+        channel_high = df['high'].head(20).max()
+        channel_low = df['low'].head(20).min()
+        channel_range = channel_high - channel_low
+        if channel_range == 0:
+            return
+            
+        channel_position = (
+            latest - channel_low
+        ) / channel_range
+        if direction == "UP" and channel_position > 0.30:
+            print(
+                f"ROI FAILED LONG → {symbol} {timeframe}"
+            )
+            return
+            
+        if direction == "DOWN" and channel_position < 0.70:
+            print(
+                f"ROI FAILED SHORT → {symbol} {timeframe}"
+            )
+            return
         candle_type = detect_candle_pattern(df)
         print(f" {symbol} {timeframe} → AI: {round(ai_confidence,2)} | Vol: {round(volatility,2)}")
         if ai_confidence < 80 or volatility < 3:
