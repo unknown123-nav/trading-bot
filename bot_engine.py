@@ -92,10 +92,11 @@ def process_auto(symbol, timeframe, table_name):
         
         avg = float(df['close'].mean())
         volatility = abs(latest - avg) / avg * 100
+        
+        direction, ai_confidence = predict_signal(df, symbol, timeframe)
         atr = float(df.iloc[0]["ATR"])
         rsi = float(df.iloc[0]["RSI"])
         ema20 = float(df.iloc[0]["EMA20"])
-        direction, ai_confidence = predict_signal(df, symbol, timeframe)
         if direction == "UP" and latest < ema20:
             print("EMA FILTER FAILED")
             return
@@ -180,7 +181,7 @@ def process_auto(symbol, timeframe, table_name):
 
 
         if signal_type == "LONG":
-            tp = latest * (2 * atr)
+            tp = latest + (2 * atr)
             sl = latest - atr
         else:
             tp = latest - (2 * atr)
@@ -353,7 +354,7 @@ def monitor_trades():
                     if conn:
                         conn.close()
 
-                # ✅ ✅ CORRECT BLOCK
+                # CORRECT BLOCK
                 result = "WIN" if pnl > 0 else "LOSS"
                 uk_time = get_uk_time().strftime("%H:%M:%S")
 
