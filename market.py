@@ -77,6 +77,10 @@ def get_data(symbol, timeframe='1m', limit=50):
             axis=1
         ).max(axis=1)
         df["ATR"] = tr.rolling(14).mean()
+        df["NATR"] = (
+            df["ATR"]
+            / df["close"]
+        ) * 100
         df["BB_MIDDLE"] = (
             df["close"]
             .rolling(20)
@@ -98,6 +102,18 @@ def get_data(symbol, timeframe='1m', limit=50):
             / df["close"]
         ) * 100
 
+        ema_high_low = (
+            (df["high"] - df["low"])
+            .ewm(span=10)
+            .mean()
+        )
+        df["CHAIKIN_VOL"] = (
+            ema_high_low.pct_change(10)
+        ) * 100
+        df["VQI"] = (
+            abs(df["close"]-df["open"])
+            /(df["high"]-df["low"])
+        )
         return df
 
     except Exception as e:
