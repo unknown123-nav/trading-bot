@@ -97,12 +97,23 @@ def process_auto(symbol, timeframe, table_name):
         atr = float(df.iloc[0]["ATR"])
         rsi = float(df.iloc[0]["RSI"])
         ema20 = float(df.iloc[0]["EMA20"])
+        bb_upper = float(df.iloc[0]["BB_UPPER"])
+        bb_lower = float(df.iloc[0]["BB_LOWER"])
+        
         if direction == "UP" and latest < ema20:
             print("EMA FILTER FAILED")
             return
             
         if direction == "DOWN" and latest > ema20:
             print("EMA FILTER FAILED")
+            return
+
+        if direction == "UP" and latest > bb_upper:
+            print("OVERBOUGHT")
+            return
+            
+        if direction == "DOWN" and latest < bb_lower:
+            print("OVERSOLD")
             return
         sma10 = df['close'].head(10).mean()
         sma30 = df['close'].head(30).mean()
