@@ -7,6 +7,7 @@ from market import get_data
 from db import create_paper_trade, get_open_trades, close_trade, save_signal, save_telegram_log
 from config import SYMBOLS
 from ai_engine import predict_signal
+from volatility_indicators import *
 
 print("bot_engine LOADED")
 processing = {}
@@ -181,6 +182,9 @@ def process_auto(symbol, timeframe, table_name):
 
         signal_type = "LONG" if direction == "UP" else "SHORT"
         direction_text = "UP" if signal_type == "LONG" else "DOWN"
+        unstable, ratio = atr_instability(df)
+        if unstable:
+            print("VOLATILITY SPIKE")
         open_trades = get_open_trades()
         for t in open_trades:
             if t[1] == symbol and t[2] == signal_type:
