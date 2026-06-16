@@ -77,6 +77,22 @@ def get_data(symbol, timeframe='1m', limit=50):
             axis=1
         ).max(axis=1)
         df["ATR"] = tr.rolling(14).mean()
+        df["BB_MIDDLE"] = (
+            df["close"]
+            .rolling(20)
+            .mean()
+        )
+        std = (
+            df["close"]
+            .rolling(20)
+            .std()
+        )
+        df["BB_UPPER"] = (
+            df["BB_MIDDLE"] + 2*std
+        )
+        df["BB_LOWER"] = (
+            df["BB_MIDDLE"] - 2*std
+        )
         df["VOLATILITY"] = (
             (df["high"] - df["low"])
             / df["close"]
