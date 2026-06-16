@@ -183,6 +183,10 @@ def process_auto(symbol, timeframe, table_name):
         signal_type = "LONG" if direction == "UP" else "SHORT"
         direction_text = "UP" if signal_type == "LONG" else "DOWN"
         unstable, ratio = atr_instability(df)
+        upper_dc, lower_dc, width = donchian_channel(df)
+        if width / latest * 100 > 4:
+            print("DONCHIAN VOLATILITY SPIKE")
+        
         if unstable:
             print("VOLATILITY SPIKE")
         open_trades = get_open_trades()
