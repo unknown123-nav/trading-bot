@@ -92,8 +92,17 @@ def process_auto(symbol, timeframe, table_name):
         
         avg = float(df['close'].mean())
         volatility = abs(latest - avg) / avg * 100
+        atr = float(df.iloc[0]["ATR"])
+        rsi = float(df.iloc[0]["RSI"])
+        ema20 = float(df.iloc[0]["EMA20"])
         direction, ai_confidence = predict_signal(df, symbol, timeframe)
-        
+        if direction == "UP" and latest < ema20:
+            print("EMA FILTER FAILED")
+            return
+            
+        if direction == "DOWN" and latest > ema20:
+            print("EMA FILTER FAILED")
+            return
         sma10 = df['close'].head(10).mean()
         sma30 = df['close'].head(30).mean()
         trend_strength = abs(
@@ -170,13 +179,12 @@ def process_auto(symbol, timeframe, table_name):
         confidence = min(confidence, 99)
 
 
-        risk = volatility / 100
         if signal_type == "LONG":
-            tp = latest * (1 + risk)
-            sl = latest * (1 - risk / 2)
+            tp = latest * (2 * atr)
+            sl = latest - atr
         else:
-            tp = latest * (1 - risk)
-            sl = latest * (1 + risk / 2)
+            tp = latest - (2 * atr)
+            sl = latest + atr
 
         created = create_paper_trade(symbol, signal_type, latest, 1, timeframe, tp, sl)
 
