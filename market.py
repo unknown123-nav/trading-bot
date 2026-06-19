@@ -1,6 +1,6 @@
 import requests
 import pandas as pd
-
+import numpy as np
 
 def get_data(symbol, timeframe="1m", limit=50):
 
@@ -209,114 +209,10 @@ def get_data(symbol, timeframe="1m", limit=50):
             - 2 * std
         )
 
-        # ======================
-        # VOLATILITY
-        # ======================
-
-        df["VOLATILITY"] = (
-            (
-                df["high"]
-                - df["low"]
-            )
-            / df["close"]
-        ) * 100
-
-        # ======================
-        # MACD
-        # ======================
-
-        ema12 = (
-            df["close"]
-            .ewm(
-                span=12,
-                adjust=False
-            )
-            .mean()
-        )
-
-        ema26 = (
-            df["close"]
-            .ewm(
-                span=26,
-                adjust=False
-            )
-            .mean()
-        )
-
-        df["MACD"] = (
-            ema12 - ema26
-        )
-
-        df["MACD_SIGNAL"] = (
-            df["MACD"]
-            .ewm(
-                span=9,
-                adjust=False
-            )
-            .mean()
-        )
-
-        # ======================
-        # ADX
-        # ======================
-
-        plus_dm = (
-            df["high"]
-            .diff()
-        )
-
-        minus_dm = (
-            -df["low"]
-            .diff()
-        )
-
-        plus_dm[
-            plus_dm < 0
-        ] = 0
-
-        minus_dm[
-            minus_dm < 0
-        ] = 0
-
-        plus_di = (
-            100
-            * plus_dm
-            .rolling(14)
-            .mean()
-            / (
-                df["ATR"]
-                + 1e-5
-            )
-        )
-
-        minus_di = (
-            100
-            * minus_dm
-            .rolling(14)
-            .mean()
-            / (
-                df["ATR"]
-                + 1e-5
-            )
-        )
-
-        dx = (
-            abs(
-                plus_di
-                - minus_di
-            )
-            /
-            (
-                plus_di
-                + minus_di
-                + 1e-5
-            )
-        ) * 100
-
-        df["ADX"] = (
-            dx
-            .rolling(14)
-            .mean()
+        df["BB_WIDTH"] = (
+            df["BB_UPPER"]
+            -
+            df["BB_LOWER"]
         )
 
         # ======================
@@ -344,6 +240,53 @@ def get_data(symbol, timeframe="1m", limit=50):
         # VQI
         # ======================
 
+        sma10 = (
+            df["close"]
+            .rolling(10)
+            .mean()
+        )
+        sma30 = (
+            df["close"]
+            .rolling(30)
+            .mean()
+        )
+        df["TREND_STRENGTH"] = (
+            abs(
+                sma10
+                -
+                sma30
+            )
+            /
+            (
+                sma30
+                + 1e-5
+            )
+        ) * 100
+
+        upper = (
+            df["high"]
+           .rolling(20)
+           .max()
+        )
+        lower = (
+            df["low"]
+            .rolling(20)
+            .min()
+        )
+        df["CHANNEL_POSITION"] = (
+            (
+                df["close"]
+                -
+                lower
+            )
+            /
+            (
+                upper
+                -
+                lower
+                + 1e-5
+            )
+        )
         df["VQI"] = (
             abs(
                 df["close"]
@@ -357,6 +300,8 @@ def get_data(symbol, timeframe="1m", limit=50):
             )
         )
 
+        df.dropna(inplace=True)
+        df.reset_index(drop=True, inplace=True)
         return df
 
     except Exception as e:
