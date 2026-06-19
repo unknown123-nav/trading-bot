@@ -1,97 +1,123 @@
-import numpy as np
-from tensorflow.keras.models import load_model
 import os
+import joblib
+import numpy as np
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
-model = load_model("trading_ai_model_v2.h5")
-print(" AI MODEL V2 LOADED")
+# ==========================================
+# LOAD MODELS
+# ==========================================
 
-def predict_trade(pair, timeframe, direction, confidence, delta, percentile, pnl):
-    try:
-        pair_map = {
-            "BTC-GBP": 0,
-            "ETH-GBP": 1,
-            "SOL-GBP": 2
-        }
+cat_model = joblib.load("catboost_model.pkl")
+xgb_model = joblib.load("xgboost_model.pkl")
+lgbm_model = joblib.load("lightgbm_model.pkl")
 
-        timeframe_map = {
-            "1m": 0,
-            "3m": 1,
-            "5m": 2,
-            "15m": 3,
-            "30m": 4,
-            "1H": 5
-        }
+weights = joblib.load("ensemble_model.pkl")
+best_threshold = joblib.load("best_threshold.pkl")
 
-        direction_map = {
-            "LONG": 0,
-            "SHORT": 1
-        }
+CAT_WEIGHT = weights["catboost_weight"]
+XGB_WEIGHT = weights["xgboost_weight"]
+LGBM_WEIGHT = weights["lightgbm_weight"]
 
-        features = np.array([[ 
-            pair_map.get(pair, 0),
-            timeframe_map.get(timeframe, 0),
-            direction_map.get(direction, 0),
-            float(confidence),
-            float(delta),
-            float(percentile)
-        ]])
-
-        prediction = model.predict(features, verbose=0)
-
-        return float(prediction[0][0])
-
-    except Exception as e:
-        print("❌ AI Prediction Error:", e)
-        return 0.0
+print("ENSEMBLE AI LOADED")
 
 
-# =========================================
-# SIGNAL GENERATION 
-# =========================================
+# ==========================================
+# ENSEMBLE PREDICTION
+# ==========================================
+
+def predict_trade(features):
+
+    cat_prob = cat_model.predict_proba(features)[0][1]
+
+    xgb_prob = xgb_model.predict_proba(features)[0][1]
+
+    lgbm_prob = lgbm_model.predict_proba(features)[0][1]
+
+    ensemble_prob = (
+        CAT_WEIGHT * cat_prob
+        + XGB_WEIGHT * xgb_prob
+        + LGBM_WEIGHT * lgbm_prob
+    )
+
+    return ensemble_prob
+
+
+# ==========================================
+# SIGNAL GENERATION
+# ==========================================
+
 def predict_signal(df, symbol, timeframe):
+
     try:
-        if len(df) < 2:
+
+        if len(df) < 30:
             return "DOWN", 0
 
-        last = df.iloc[0]
-        prev = df.iloc[1]
+        latest = df.iloc[0]
+        previous = df.iloc[1]
 
-        delta = float(last['close']) - float(prev['close'])
-        direction = "UP" if delta > 0 else "DOWN"
+        # Trend strength
+        sma10 = df["close"].head(10).mean()
+        sma30 = df["close"].head(30).mean()
 
-        percentile = abs(delta) / float(prev['close']) if float(prev['close']) != 0 else 0
+        trend_strength = (
+            abs(sma10 - sma30)
+            / (sma30 + 1e-8)
+        ) * 100
 
-        #  AI prediction
-        probability = predict_trade(
-            pair=symbol,
-            timeframe=timeframe,
-            direction="LONG" if direction == "UP" else "SHORT",
-            confidence=abs(delta),
-            delta=delta,
-            percentile=percentile,
-            pnl=0
+        # Channel position
+        upper = df["high"].head(20).max()
+        lower = df["low"].head(20).min()
+
+        channel_position = (
+            latest["close"] - lower
+        ) / (
+            upper - lower + 1e-8
         )
 
-        #  NEW CONFIDENCE LOGIC (MUCH BETTER)
+        bb_width = (
+            latest["BB_UPPER"]
+            - latest["BB_LOWER"]
+        )
+
+        features = np.array([[
+            latest["EMA20"],
+            latest["EMA50"],
+            latest["RSI"],
+            latest["ATR"],
+            latest["NATR"],
+            bb_width,
+            latest["CHAIKIN_VOL"],
+            latest["VQI"],
+            trend_strength,
+            channel_position
+        ]])
+
+        probability = predict_trade(features)
+
+        # confidence %
         confidence = round(probability * 100, 2)
-
-        #  BOOST strong moves
-        if abs(delta) > 0.5:
-            confidence += 5
-
-        if abs(delta) > 1.0:
-            confidence += 5
-
-        #  HARD LIMIT (SAFE)
         confidence = min(confidence, 99)
 
-        #  DEBUG (IMPORTANT)
-        print(f"AI → {symbol} {timeframe} | Prob: {probability:.4f} | Conf: {confidence}")
+        # use optimized threshold
+        if probability >= best_threshold:
+            direction = "UP"
+        else:
+            direction = "DOWN"
+
+        print(
+            f"AI → {symbol} {timeframe}"
+            f" | Prob={probability:.4f}"
+            f" | Threshold={best_threshold:.2f}"
+            f" | Direction={direction}"
+            f" | Confidence={confidence}"
+        )
 
         return direction, confidence
 
     except Exception as e:
-        print(" AI Signal Error:", e)
+
+        print("AI Signal Error:", e)
+
         return "DOWN", 0
