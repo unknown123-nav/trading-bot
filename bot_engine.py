@@ -14,7 +14,7 @@ processing = {}
 recent_symbols = {}
 last_signal_time = {}
 
-TELEGRAM_TOKEN = "8625282562:AAGNQZgdVK0mPYrXJ2GOAlc55HW74_5glak"
+TELEGRAM_TOKEN = "8836401905:AAFon5yaeRiBEZ5cApnbSx4zIj2VElgv4ns"
 AUTO_CHAT_ID = "-5211298112"
 MANUAL_CHAT_ID = "-5287950499"
 
