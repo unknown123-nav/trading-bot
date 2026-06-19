@@ -9,3 +9,6 @@ joblib
 gunicorn
 h5py
 pytz
+catboost
+xgboost
+lightgbm
