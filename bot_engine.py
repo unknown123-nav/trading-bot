@@ -103,11 +103,14 @@ def process_auto(symbol, timeframe, table_name):
             f"{volatility_type}"
         )
         if market_type in ["RANGING", "SIDEWAYS"]:
-            print("SIDEWAYS MARKET")
+            print(f"SKIPPED {symbol} {timeframe} → SIDEWAYS MARKET")
             return
             
         if volatility_type == "LOW":
-            print("LOW VOLATILITY")
+            print(
+                f"SKIPPED {symbol} {timeframe}"
+                f" → LOW VOLATILITY"
+            )
             return
         atr = float(df.iloc[0]["ATR"])
         rsi = float(df.iloc[0]["RSI"])
@@ -128,19 +131,31 @@ def process_auto(symbol, timeframe, table_name):
             return
         
         if direction == "UP" and latest < ema20:
-            print("EMA FILTER FAILED")
+            print(
+                f"SKIPPED {symbol} {timeframe}"
+                " → EMA FILTER FAILED"
+            )
             return
             
         if direction == "DOWN" and latest > ema20:
-            print("EMA FILTER FAILED")
+            print(
+                f"SKIPPED {symbol} {timeframe}"
+                " → EMA FILTER FAILED"
+            )
             return
 
         if direction == "UP" and latest > bb_upper:
-            print("OVERBOUGHT")
+            print(
+                f"SKIPPED {symbol} {timeframe}"
+                " → OVERBOUGHT"
+            )
             return
             
         if direction == "DOWN" and latest < bb_lower:
-            print("OVERSOLD")
+            print(
+                f"SKIPPED {symbol} {timeframe}"
+                " → OVERSOLD"
+            )
             return
         sma10 = df['close'].head(10).mean()
         sma30 = df['close'].head(30).mean()
@@ -203,10 +218,10 @@ def process_auto(symbol, timeframe, table_name):
         if ai_confidence < 85 or volatility < 3:
             reason = []
             if ai_confidence < 85:
-                 print(
-                     f"SKIPPED {symbol} {timeframe} → LOW AI "
-                     f"| AI={ai_confidence:.2f}"
-                 )
+                print(
+                    f"SKIPPED {symbol} {timeframe} → LOW AI "
+                    f"| AI={ai_confidence:.2f}"
+                )
                 return
                 
             if volatility < 3:
