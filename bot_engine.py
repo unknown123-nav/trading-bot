@@ -164,11 +164,17 @@ def process_auto(symbol, timeframe, table_name):
         
         macd_signal = float(df.iloc[0]["MACD_SIGNAL"])
         if direction == "UP" and macd < macd_signal:
-            print("MACD FILTER FAILED")
+            print(
+                f"SKIPPED {symbol} {timeframe}"
+                f" → MACD FILTER"
+            )
             return
             
         if direction == "DOWN" and macd > macd_signal:
-            print("MACD FILTER FAILED")
+            print(
+                f"SKIPPED {symbol} {timeframe}"
+                f" → MACD FILTER"
+            )
             return
         trend_strength = abs(
             sma10 - sma30
@@ -241,7 +247,10 @@ def process_auto(symbol, timeframe, table_name):
         unstable, ratio = atr_instability(df)
         upper_dc, lower_dc, width = donchian_channel(df)
         if width / latest * 100 > 5:
-            print("DONCHIAN VOLATILITY SPIKE")
+            print(
+                f"SKIPPED {symbol} {timeframe}"
+                f" → DONCHIAN SPIKE"
+            )
             return
         
         if unstable and ratio > 1.8:
