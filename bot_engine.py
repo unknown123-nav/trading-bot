@@ -111,9 +111,21 @@ def process_auto(symbol, timeframe, table_name):
             return
         atr = float(df.iloc[0]["ATR"])
         rsi = float(df.iloc[0]["RSI"])
+        if direction == "UP" and rsi > 75:
+            print("RSI OVERBOUGHT")
+            return
+            
+        if direction == "DOWN" and rsi < 25:
+            print("RSI OVERSOLD")
+            return
         ema20 = float(df.iloc[0]["EMA20"])
         bb_upper = float(df.iloc[0]["BB_UPPER"])
         bb_lower = float(df.iloc[0]["BB_LOWER"])
+
+        adx = float(df.iloc[0]["ADX"])
+        if adx < 20:
+            print("WEAK TREND")
+            return
         
         if direction == "UP" and latest < ema20:
             print("EMA FILTER FAILED")
@@ -132,10 +144,21 @@ def process_auto(symbol, timeframe, table_name):
             return
         sma10 = df['close'].head(10).mean()
         sma30 = df['close'].head(30).mean()
+
+        macd = float(df.iloc[0]["MACD"])
+        
+        macd_signal = float(df.iloc[0]["MACD_SIGNAL"])
+        if direction == "UP" and macd < macd_signal:
+            print("MACD FILTER FAILED")
+            return
+            
+        if direction == "DOWN" and macd > macd_signal:
+            print("MACD FILTER FAILED")
+            return
         trend_strength = abs(
             sma10 - sma30
         ) / sma30 * 100
-        if trend_strength < 0.20:
+        if trend_strength < 0.30:
             print(
                 f"FLAT MARKET → {symbol} {timeframe}"
             )
@@ -177,9 +200,9 @@ def process_auto(symbol, timeframe, table_name):
         
         candle_type = detect_candle_pattern(df)
         print(f" {symbol} {timeframe} → AI: {round(ai_confidence,2)} | Vol: {round(volatility,2)}")
-        if ai_confidence < 80 or volatility < 3:
+        if ai_confidence < 85 or volatility < 3:
             reason = []
-            if ai_confidence < 80:
+            if ai_confidence < 85:
                 reason.append(f"AI LOW ({round(ai_confidence,2)})")
                 
             if volatility < 3:
@@ -198,19 +221,24 @@ def process_auto(symbol, timeframe, table_name):
         direction_text = "UP" if signal_type == "LONG" else "DOWN"
         unstable, ratio = atr_instability(df)
         upper_dc, lower_dc, width = donchian_channel(df)
-        if width / latest * 100 > 4:
+        if width / latest * 100 > 5:
             print("DONCHIAN VOLATILITY SPIKE")
+            return
         
-        if unstable:
-            print("VOLATILITY SPIKE")
+        if unstable and ratio > 1.8:
+            print("ATR VOLATILITY SPIKE")
+            return
         open_trades = get_open_trades()
         for t in open_trades:
             if t[1] == symbol and t[2] == signal_type:
                 print(f" ALREADY OPEN → {symbol} {signal_type}")
                 return
 
-        confidence = round((ai_confidence * 0.8) + (volatility * 10), 2)
-        confidence = min(confidence, 99)
+        confidence = (
+            ai_confidence * 0.85
+            + volatility * 5
+        )
+        confidence = min(round(confidence, 2), 99)
 
 
         if signal_type == "LONG":
@@ -241,6 +269,8 @@ def process_auto(symbol, timeframe, table_name):
 Pair: {symbol}
 Direction: {direction_text}
 candle_type: {candle_type}
+Market: {market_type}
+Volatility Regime: {volatility_type}
 Entry: £{round(gbp_price, 2)} ({latest} USDT)
 
 Confidence: {confidence}%
