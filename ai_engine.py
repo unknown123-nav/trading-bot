@@ -9,7 +9,7 @@ xgb_model = joblib.load("xgboost_model.pkl")
 lgbm_model = joblib.load("lightgbm_model.pkl")
 
 weights = joblib.load("ensemble_model.pkl")
-best_threshold = joblib.load("best_threshold.pkl")
+best_threshold = float(joblib.load("best_threshold.pkl"))
 
 CAT_WEIGHT = weights["catboost_weight"]
 XGB_WEIGHT = weights["xgboost_weight"]
@@ -46,7 +46,6 @@ def predict_signal(df, symbol, timeframe):
             return "DOWN", 0
 
         latest = df.iloc[0]
-        previous = df.iloc[1]
 
         # Trend strength
         sma10 = df["close"].head(10).mean()
@@ -78,11 +77,11 @@ def predict_signal(df, symbol, timeframe):
             latest["RSI"],
             latest["ATR"],
             latest["NATR"],
-            bb_width,
+            latest["BB_WIDTH"],
             latest["CHAIKIN_VOL"],
             latest["VQI"],
-            trend_strength,
-            channel_position
+            latest["TREND_STRENGTH"],
+            latest["CHANNEL_POSITION"]
         ]])
 
         probability = predict_trade(features)
@@ -100,7 +99,6 @@ def predict_signal(df, symbol, timeframe):
         print(
             f"AI → {symbol} {timeframe}"
             f" | Prob={probability:.4f}"
-            f" | Threshold={best_threshold:.2f}"
             f" | Direction={direction}"
             f" | Confidence={confidence}"
         )
