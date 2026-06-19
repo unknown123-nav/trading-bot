@@ -4,10 +4,6 @@ import numpy as np
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
-# ==========================================
-# LOAD MODELS
-# ==========================================
-
 cat_model = joblib.load("catboost_model.pkl")
 xgb_model = joblib.load("xgboost_model.pkl")
 lgbm_model = joblib.load("lightgbm_model.pkl")
@@ -21,17 +17,13 @@ LGBM_WEIGHT = weights["lightgbm_weight"]
 
 print("ENSEMBLE AI LOADED")
 
-
 # ==========================================
 # ENSEMBLE PREDICTION
 # ==========================================
-
 def predict_trade(features):
 
     cat_prob = cat_model.predict_proba(features)[0][1]
-
     xgb_prob = xgb_model.predict_proba(features)[0][1]
-
     lgbm_prob = lgbm_model.predict_proba(features)[0][1]
 
     ensemble_prob = (
@@ -41,7 +33,6 @@ def predict_trade(features):
     )
 
     return ensemble_prob
-
 
 # ==========================================
 # SIGNAL GENERATION
