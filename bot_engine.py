@@ -303,7 +303,7 @@ SL: £{round(sl_gbp, 2)}
 
         send_message(AUTO_CHAT_ID, message_text)
 
-        save_signal(table_name, symbol, signal_type, confidence, latest,candle_type, "AI", volatility, trade_source="AUTO")
+        save_signal(table_name, symbol, signal_type, confidence, latest,candle_type, volatility, trade_source="AUTO")
 
         save_telegram_log(message_text, "AUTO_CHANNEL", "SENT")
 
