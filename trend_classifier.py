@@ -2,39 +2,20 @@ def classify_market(df):
 
     latest = df.iloc[0]
 
-    adx = latest["ADX"]
-
-    volatility = latest["VOLATILITY"]
-
-    bb_width = (
-        latest["BB_UPPER"]
-        - latest["BB_LOWER"]
-    ) / latest["close"] * 100
-
-    macd = latest["MACD"]
-    signal = latest["MACD_SIGNAL"]
-
-    ema20 = latest["EMA20"]
-    ema50 = latest["EMA50"]
+    trend_strength = latest["TREND_STRENGTH"]
+    natr = latest["NATR"]
+    bb_width = latest["BB_WIDTH"]
 
     # Strong trend
-    if (
-        adx > 25
-        and abs(macd - signal) > 0
-        and abs(ema20 - ema50)/ema50*100 > 0.15
-    ):
+    if trend_strength > 0.30:
         return "TRENDING"
 
-    # Volatile market
-    elif volatility > 4:
+    # High volatility
+    elif natr > 2:
         return "VOLATILE"
 
-    # Bollinger squeeze
+    # Range market
     elif bb_width < 2:
         return "RANGING"
-
-    # Sideways
-    elif adx < 18:
-        return "SIDEWAYS"
 
     return "NORMAL"
