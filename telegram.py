@@ -168,7 +168,6 @@ def check_replies():
             elif "ai" in text:
                 reply = (
                     "AI System:\n\n"
-                    "Model: trading_ai_model_v2\n"
                     "Type: classification\n"
                     "Multi-timeframe analysis enabled"
                 )
