@@ -125,10 +125,6 @@ def process_auto(symbol, timeframe, table_name):
         bb_upper = float(df.iloc[0]["BB_UPPER"])
         bb_lower = float(df.iloc[0]["BB_LOWER"])
 
-        adx = float(df.iloc[0]["ADX"])
-        if adx < 20:
-            print(f"SKIPPED {symbol} {timeframe} → WEAK TREND | ADX={adx:.2f}")
-            return
         
         if direction == "UP" and latest < ema20:
             print(
@@ -160,22 +156,6 @@ def process_auto(symbol, timeframe, table_name):
         sma10 = df['close'].head(10).mean()
         sma30 = df['close'].head(30).mean()
 
-        macd = float(df.iloc[0]["MACD"])
-        
-        macd_signal = float(df.iloc[0]["MACD_SIGNAL"])
-        if direction == "UP" and macd < macd_signal:
-            print(
-                f"SKIPPED {symbol} {timeframe}"
-                f" → MACD FILTER"
-            )
-            return
-            
-        if direction == "DOWN" and macd > macd_signal:
-            print(
-                f"SKIPPED {symbol} {timeframe}"
-                f" → MACD FILTER"
-            )
-            return
         trend_strength = abs(
             sma10 - sma30
         ) / sma30 * 100
