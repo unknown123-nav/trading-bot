@@ -124,7 +124,7 @@ def process_auto(symbol, timeframe, table_name):
 
         adx = float(df.iloc[0]["ADX"])
         if adx < 20:
-            print("WEAK TREND")
+            print(f"SKIPPED {symbol} {timeframe} → WEAK TREND | ADX={adx:.2f}")
             return
         
         if direction == "UP" and latest < ema20:
@@ -203,7 +203,11 @@ def process_auto(symbol, timeframe, table_name):
         if ai_confidence < 85 or volatility < 3:
             reason = []
             if ai_confidence < 85:
-                reason.append(f"AI LOW ({round(ai_confidence,2)})")
+                 print(
+                     f"SKIPPED {symbol} {timeframe} → LOW AI "
+                     f"| AI={ai_confidence:.2f}"
+                 )
+                return
                 
             if volatility < 3:
                 reason.append(f"VOL LOW ({round(volatility,2)}%)")
