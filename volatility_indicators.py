@@ -1,5 +1,6 @@
 import pandas as pd
 
+
 def atr_instability(df):
 
     current_atr = df.iloc[0]["ATR"]
@@ -15,6 +16,7 @@ def atr_instability(df):
     unstable = ratio > 1.5
 
     return unstable, ratio
+
 
 def donchian_channel(df):
 
@@ -34,3 +36,17 @@ def donchian_channel(df):
 
     return upper, lower, width
 
+
+def volatility_regime(df):
+
+    latest = df.iloc[0]
+
+    natr = latest["NATR"]
+
+    if natr < 0.8:
+        return "LOW"
+
+    elif natr < 2:
+        return "MEDIUM"
+
+    return "HIGH"
