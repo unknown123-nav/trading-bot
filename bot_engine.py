@@ -2,12 +2,12 @@ import time
 import requests
 from datetime import datetime
 import pytz
-
+from trend_classifier import classify_market
+from volatility_indicators import *
 from market import get_data
 from db import create_paper_trade, get_open_trades, close_trade, save_signal, save_telegram_log
 from config import SYMBOLS
 from ai_engine import predict_signal
-from volatility_indicators import *
 
 print("bot_engine LOADED")
 processing = {}
@@ -95,6 +95,20 @@ def process_auto(symbol, timeframe, table_name):
         volatility = abs(latest - avg) / avg * 100
         
         direction, ai_confidence = predict_signal(df, symbol, timeframe)
+        market_type = classify_market(df)
+        volatility_type = volatility_regime(df)
+        print(
+            f"{symbol} {timeframe} | "
+            f"{market_type} | "
+            f"{volatility_type}"
+        )
+        if market_type in ["RANGING", "SIDEWAYS"]:
+            print("SIDEWAYS MARKET")
+            return
+            
+        if volatility_type == "LOW":
+            print("LOW VOLATILITY")
+            return
         atr = float(df.iloc[0]["ATR"])
         rsi = float(df.iloc[0]["RSI"])
         ema20 = float(df.iloc[0]["EMA20"])
