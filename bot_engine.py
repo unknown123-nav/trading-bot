@@ -102,14 +102,14 @@ def process_auto(symbol, timeframe, table_name):
             f"{market_type} | "
             f"{volatility_type}"
         )
-        if market_type in ["RANGING", "SIDEWAYS"]:
+        if market_type == "SIDEWAYS":
             print(f"SKIPPED {symbol} {timeframe} → SIDEWAYS MARKET")
             return
             
-        if volatility_type == "LOW":
+        if volatility_type == "LOW" and timeframe in ["1m","3m","5m"]:
             print(
                 f"SKIPPED {symbol} {timeframe}"
-                f" → LOW VOLATILITY"
+                " → LOW VOLATILITY"
             )
             return
         atr = float(df.iloc[0]["ATR"])
@@ -182,35 +182,39 @@ def process_auto(symbol, timeframe, table_name):
         )
         channel_range = upper_line - lower_line
         if channel_range <= 0:
+            print(
+                f"SKIPPED {symbol} {timeframe} → INVALID CHANNEL"
+            )
             return
         channel_position = (
             latest - lower_line
         ) / channel_range
-        if direction == "UP" and channel_position > 0.30:
+        if direction == "UP" and channel_position > 0.80:
             print(
-                f"ROI FAILED LONG → {symbol} {timeframe}"
+                f"SKIPPED {symbol} {timeframe}"
+                f" → LONG TOO HIGH ({channel_position:.2f})"
             )
             return
             
-        if direction == "DOWN" and channel_position < 0.70:
+        if direction == "DOWN" and channel_position < 0.20:
             print(
-                f"ROI FAILED SHORT → {symbol} {timeframe}"
+                f"SKIPPED {symbol} {timeframe}"
+                f" → SHORT TOO LOW ({channel_position:.2f})"
             )
             return
-
         
         candle_type = detect_candle_pattern(df)
         print(f" {symbol} {timeframe} → AI: {round(ai_confidence,2)} | Vol: {round(volatility,2)}")
-        if ai_confidence < 85 or volatility < 3:
+        if ai_confidence < 75 or volatility < 1:
             reason = []
-            if ai_confidence < 85:
+            if ai_confidence < 75:
                 print(
                     f"SKIPPED {symbol} {timeframe} → LOW AI "
                     f"| AI={ai_confidence:.2f}"
                 )
                 return
                 
-            if volatility < 3:
+            if volatility < 1:
                 reason.append(f"VOL LOW ({round(volatility,2)}%)")
                 
             print(f" SKIPPED → {symbol} {timeframe} | {' & '.join(reason)}")
@@ -219,14 +223,14 @@ def process_auto(symbol, timeframe, table_name):
         #  GLOBAL LIMIT
         symbol_key = f"{symbol}_global"
         if symbol_key in recent_symbols:
-            if time.time() - recent_symbols[symbol_key] < 300:
+            if time.time() - recent_symbols[symbol_key] < 150:
                 return
 
         signal_type = "LONG" if direction == "UP" else "SHORT"
         direction_text = "UP" if signal_type == "LONG" else "DOWN"
         unstable, ratio = atr_instability(df)
         upper_dc, lower_dc, width = donchian_channel(df)
-        if width / latest * 100 > 5:
+        if width / latest * 100 > 8:
             print(
                 f"SKIPPED {symbol} {timeframe}"
                 f" → DONCHIAN SPIKE"
@@ -234,7 +238,10 @@ def process_auto(symbol, timeframe, table_name):
             return
         
         if unstable and ratio > 1.8:
-            print("ATR VOLATILITY SPIKE")
+            print(
+                f"SKIPPED {symbol} {timeframe}"
+                f" → ATR SPIKE ({ratio:.2f})"
+            )
             return
         open_trades = get_open_trades()
         for t in open_trades:
