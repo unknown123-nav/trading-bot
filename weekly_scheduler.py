@@ -1,6 +1,6 @@
+import subprocess
 import time
 import datetime
-from weekly_retrainer import *
 
 print("WEEKLY SCHEDULER STARTED")
 
@@ -12,7 +12,6 @@ while True:
 
         now = datetime.datetime.now()
 
-        # Sunday = 6
         if (
             now.weekday() == 6
             and now.hour == 0
@@ -23,29 +22,22 @@ while True:
             if last_run_date != today:
 
                 print(
-                    "STARTING WEEKLY RETRAINING..."
+                    "STARTING WEEKLY RETRAINING"
                 )
 
-                try:
+                subprocess.run(
 
-                    import weekly_retrainer
+                    ["python", "weekly_retrainer.py"]
 
-                    print(
-                        "RETRAINING COMPLETE"
-                    )
+                )
 
-                except Exception as e:
-
-                    print(
-                        "Retraining error:",
-                        e
-                    )
+                print(
+                    "RETRAINING FINISHED"
+                )
 
                 last_run_date = today
 
-        time.sleep(
-            3600
-        )
+        time.sleep(3600)
 
     except Exception as e:
 
@@ -54,6 +46,4 @@ while True:
             e
         )
 
-        time.sleep(
-            300
-        )
+        time.sleep(300)
