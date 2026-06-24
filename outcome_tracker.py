@@ -1,4 +1,5 @@
 import mysql.connector
+from datetime import datetime
 from config import DB_CONFIG
 from market import get_data
 
@@ -11,16 +12,19 @@ def update_targets():
     try:
 
         cursor.execute("""
+
         SELECT
         id,
         pair,
         timeframe,
         price,
-        direction
+        direction,
+        time
 
         FROM ai_training_dataset
 
         WHERE target IS NULL
+
         """)
 
         rows = cursor.fetchall()
@@ -32,13 +36,28 @@ def update_targets():
             timeframe = row[2]
             entry_price = float(row[3])
             direction = row[4]
+            signal_time = row[5]
+
+            elapsed_hours = (
+                datetime.now() - signal_time
+            ).total_seconds()/3600
+
+            # wait enough candles
+
+            if timeframe == "30m" and elapsed_hours < 2:
+                continue
+
+            if timeframe == "1H" and elapsed_hours < 4:
+                continue
 
             df = get_data(pair, timeframe, 1)
 
             if df.empty:
                 continue
 
-            current_price = float(df.iloc[0]["close"])
+            current_price = float(
+                df.iloc[0]["close"]
+            )
 
             target = 0
 
@@ -66,9 +85,11 @@ def update_targets():
                 )
             )
 
-        conn.commit()
+            print(
+                f"TARGET UPDATED → {pair} {timeframe} = {target}"
+            )
 
-        print("Targets updated")
+        conn.commit()
 
     except Exception as e:
 
