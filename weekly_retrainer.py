@@ -48,19 +48,26 @@ if len(df) < 500:
 
 FEATURES = [
 
-    "EMA20",
-    "EMA50",
-    "RSI",
-    "ATR",
-    "NATR",
-    "BB_WIDTH",
-    "CHAIKIN_VOL",
-    "VQI",
-    "TREND_STRENGTH",
-    "CHANNEL_POSITION"
+"EMA20",
+"EMA50",
+"RSI",
+"ATR",
+"NATR",
+"BB_WIDTH",
+"CHAIKIN_VOL",
+"VQI",
+"TREND_STRENGTH",
+"CHANNEL_POSITION",
+
+"overall_positive",
+"overall_negative",
+"overall_neutral",
+"news_strength",
+
+"power_score",
+"financial_strength"
 
 ]
-
 X = df[FEATURES]
 
 y = df["target"]
