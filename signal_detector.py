@@ -1,20 +1,19 @@
-def detect_signal_class(
-        direction,
-        trend_strength,
-        volatility,
-        candle_type
-):
+def interesting_signal(df):
 
-    if candle_type=="Bullish Engulfing":
-        return "Bullish Breakout"
+    condition = (
 
-    if candle_type=="Bearish Engulfing":
-        return "Bearish Breakout"
+        (df["POWER_SCORE"] > 60)
 
-    if volatility>4:
-        return "Volatility Spike"
+        &
 
-    if trend_strength>1:
-        return "Power Move"
+        (df["TREND_STRENGTH"] > 0.15)
 
-    return "Trend Continuation"
+        &
+
+        (df["SLOPE_SIGNAL"] > 1)
+
+    )
+
+    df["INTERESTING_SIGNAL"] = condition.astype(int)
+
+    return df
