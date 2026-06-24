@@ -9,6 +9,7 @@ from db import create_paper_trade, get_open_trades, close_trade, save_signal, sa
 from config import SYMBOLS
 from ai_engine import predict_signal
 from historical_builder import save_training_signal
+from outcome_tracker import update_targets
 
 print("bot_engine LOADED")
 processing = {}
@@ -523,5 +524,6 @@ def run_bot():
                 time.sleep(0.5)
 
         monitor_trades()
+        update_targets()
 
         time.sleep(3)
