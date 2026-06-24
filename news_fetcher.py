@@ -1,27 +1,39 @@
 import requests
 
+API_KEY = "R2J9I9NZC4TK0SRK"
 
-API_KEY="R2J9I9NZC4TK0SRK"
 
 def get_news(symbol):
 
-    url=f"https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers={symbol}&apikey={API_KEY}"
+    symbol = symbol.replace("-USDT","")
 
-    r=requests.get(url)
+    url = (
+        "https://www.alphavantage.co/query?"
+        f"function=NEWS_SENTIMENT"
+        f"&tickers={symbol}"
+        f"&apikey={API_KEY}"
+    )
 
-    data=r.json()
+    r = requests.get(url)
+
+    data = r.json()
 
     if "feed" not in data:
-        return None
 
-    news=data["feed"][0]
+        return {
+            "headline":"NO_NEWS",
+            "summary":"NO_NEWS",
+            "source":"NONE"
+        }
+
+    article = data["feed"][0]
 
     return {
 
-        "headline":news["title"],
+        "headline":article["title"],
 
-        "summary":news["summary"],
+        "summary":article["summary"],
 
-        "source":news["source"]
+        "source":article["source"]
 
     }
