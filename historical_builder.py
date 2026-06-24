@@ -1,6 +1,6 @@
 import mysql.connector
 from config import DB_CONFIG
-
+from news_fetcher import update_news
 
 def save_training_signal(
         time,
@@ -132,7 +132,13 @@ def save_training_signal(
             )
         )
 
+        training_id = cursor.lastrowid  
         conn.commit()
+           
+        update_news(
+                training_id,
+                pair
+        )
 
         print(
             f"TRAINING SIGNAL SAVED → {pair} {timeframe}"
