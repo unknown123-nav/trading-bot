@@ -1,12 +1,17 @@
-def classify_flat_market(
-        trend_strength,
-        bb_width
-):
+import numpy as np
 
-    if trend_strength < 0.15:
-        return "FLAT"
+def market_state(df):
 
-    elif bb_width < 2:
-        return "SIDEWAYS"
+    df["MARKET_STATE"] = "NORMAL"
 
-    return "TRENDING"
+    df.loc[
+        df["TREND_STRENGTH"] > 0.20,
+        "MARKET_STATE"
+    ] = "TRENDING"
+
+    df.loc[
+        df["BB_WIDTH"] < 0.50,
+        "MARKET_STATE"
+    ] = "RANGING"
+
+    return df
