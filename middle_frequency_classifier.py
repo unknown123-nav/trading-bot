@@ -1,13 +1,15 @@
-def classify_frequency(timeframe):
+def frequency_type(df, timeframe):
 
-    if timeframe in ["1m","3m","5m"]:
-        return "HIGH_FREQUENCY"
+    if timeframe == "30m":
 
-    elif timeframe=="15m":
-        return "SHORT_SWING"
+        df["FREQUENCY_TYPE"] = "MID_30M"
 
-    elif timeframe in ["30m","1H"]:
-        return "MIDDLE_FREQUENCY"
+    elif timeframe == "1H":
+
+        df["FREQUENCY_TYPE"] = "MID_1H"
 
     else:
-        return "SWING"
+
+        df["FREQUENCY_TYPE"] = "UNKNOWN"
+
+    return df
