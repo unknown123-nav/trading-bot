@@ -2,7 +2,7 @@ import mysql.connector
 import pandas as pd
 import numpy as np
 import joblib
-
+from model_backup import backup_models
 from config import DB_CONFIG
 
 from sklearn.metrics import roc_auc_score
@@ -11,7 +11,9 @@ from catboost import CatBoostClassifier
 from xgboost import XGBClassifier
 from lightgbm import LGBMClassifier
 
+print("STARTING RETRAINING")
 
+backup_models()
 # ==========================================
 # LOAD DATASET
 # ==========================================
