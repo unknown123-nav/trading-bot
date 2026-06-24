@@ -1,39 +1,126 @@
 import requests
+import mysql.connector
+from config import DB_CONFIG
 
 API_KEY = "R2J9I9NZC4TK0SRK"
 
 
-def get_news(symbol):
+def fetch_news(symbol):
 
-    symbol = symbol.replace("-USDT","")
+    try:
 
-    url = (
-        "https://www.alphavantage.co/query?"
-        f"function=NEWS_SENTIMENT"
-        f"&tickers={symbol}"
-        f"&apikey={API_KEY}"
-    )
-
-    r = requests.get(url)
-
-    data = r.json()
-
-    if "feed" not in data:
-
-        return {
-            "headline":"NO_NEWS",
-            "summary":"NO_NEWS",
-            "source":"NONE"
+        ticker_map = {
+            "BTC-USDT": "BTC",
+            "ETH-USDT": "ETH",
+            "SOL-USDT": "SOL"
         }
 
-    article = data["feed"][0]
+        ticker = ticker_map.get(symbol, "BTC")
 
-    return {
+        url = (
+            f"https://www.alphavantage.co/query?"
+            f"function=NEWS_SENTIMENT"
+            f"&tickers={ticker}"
+            f"&apikey={API_KEY}"
+        )
 
-        "headline":article["title"],
+        r = requests.get(url, timeout=10)
 
-        "summary":article["summary"],
+        data = r.json()
 
-        "source":article["source"]
+        if "feed" not in data:
+            return []
 
-    }
+        return data["feed"][:3]
+
+    except Exception as e:
+
+        print("News fetch error:", e)
+
+        return []
+
+
+def update_news(training_id, symbol):
+
+    articles = fetch_news(symbol)
+
+    headlines = []
+    summaries = []
+    sources = []
+
+    for article in articles:
+
+        headlines.append(
+            article.get("title", "")
+        )
+
+        summaries.append(
+            article.get("summary", "")
+        )
+
+        sources.append(
+            article.get("source", "")
+        )
+
+    while len(headlines) < 3:
+
+        headlines.append("NO_NEWS")
+        summaries.append("NO_NEWS")
+        sources.append("NONE")
+
+    conn = mysql.connector.connect(**DB_CONFIG)
+    cursor = conn.cursor()
+
+    try:
+
+        cursor.execute(
+            """
+            UPDATE ai_training_dataset
+
+            SET
+
+            headline_1=%s,
+            summary_1=%s,
+            source_1=%s,
+
+            headline_2=%s,
+            summary_2=%s,
+            source_2=%s,
+
+            headline_3=%s,
+            summary_3=%s,
+            source_3=%s
+
+            WHERE id=%s
+            """,
+            (
+                headlines[0],
+                summaries[0],
+                sources[0],
+
+                headlines[1],
+                summaries[1],
+                sources[1],
+
+                headlines[2],
+                summaries[2],
+                sources[2],
+
+                training_id
+            )
+        )
+
+        conn.commit()
+
+        print(
+            f"NEWS UPDATED → {symbol}"
+        )
+
+    except Exception as e:
+
+        print("News update error:", e)
+
+    finally:
+
+        cursor.close()
+        conn.close()
