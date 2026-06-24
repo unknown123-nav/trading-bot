@@ -8,6 +8,7 @@ from market import get_data
 from db import create_paper_trade, get_open_trades, close_trade, save_signal, save_telegram_log
 from config import SYMBOLS
 from ai_engine import predict_signal
+from historical_builder import save_training_signal
 
 print("bot_engine LOADED")
 processing = {}
@@ -365,6 +366,48 @@ Time: {uk_time}
     send_message(MANUAL_CHAT_ID, message_text)
 
     save_signal(table_name, symbol, signal_type, confidence, latest,candle_type, volatility, trade_source="MANUAL")
+
+    save_training_signal(
+
+time=df.iloc[0]["time"],
+
+uk_time=get_uk_time(),
+
+pair=symbol,
+
+timeframe=timeframe,
+
+price=latest,
+
+price_gbp=gbp_price,
+
+ema20=float(df.iloc[0]["EMA20"]),
+ema50=float(df.iloc[0]["EMA50"]),
+rsi=float(df.iloc[0]["RSI"]),
+atr=float(df.iloc[0]["ATR"]),
+natr=float(df.iloc[0]["NATR"]),
+bb_width=float(df.iloc[0]["BB_WIDTH"]),
+chaikin_vol=float(df.iloc[0]["CHAIKIN_VOL"]),
+vqi=float(df.iloc[0]["VQI"]),
+trend_strength=float(df.iloc[0]["TREND_STRENGTH"]),
+channel_position=float(df.iloc[0]["CHANNEL_POSITION"]),
+
+direction=direction,
+
+confidence=confidence,
+
+power_score=confidence,
+
+financial_strength=0,
+
+signal_class="INTERESTING",
+
+market_state="NORMAL",
+
+frequency_type="MIDDLE",
+
+candle_type=candle_type
+)
 
     save_telegram_log(message_text, "MANUAL_CHANNEL", "SENT")
 
