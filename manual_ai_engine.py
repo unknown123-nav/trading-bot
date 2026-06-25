@@ -12,143 +12,692 @@ from signal_detector import interesting_signal
 from live_finbert import finbert_scores
 from feature_encoder import encode_features
 
-print("MANUAL AI ENGINE LOADED")
+print("========================================")
+print("MANUAL AI ENGINE LOADING...")
+print("========================================")
 
 # ==========================================
-# LOAD MODELS
+# LOAD AI MODELS
 # ==========================================
 
-cat_model = joblib.load("manual_catboost.pkl")
-xgb_model = joblib.load("manual_xgboost.pkl")
-lgbm_model = joblib.load("manual_lgbm.pkl")
-threshold = joblib.load("ensemble_threshold.pkl")
-BUY_THRESHOLD = thresholds["buy_threshold"]
-SELL_THRESHOLD = thresholds["sell_threshold"]
+cat_model = joblib.load(
+    "manual_catboost.pkl"
+)
+
+xgb_model = joblib.load(
+    "manual_xgboost.pkl"
+)
+
+lgbm_model = joblib.load(
+    "manual_lgbm.pkl"
+)
+
 print("Manual Models Loaded")
 
 # ==========================================
-# FEATURE LIST (MATCH TRAINING EXACTLY)
+# LOAD ENSEMBLE WEIGHTS
+# ==========================================
+
+weights = joblib.load(
+    "manual_ensemble_model.pkl"
+)
+
+CAT_WEIGHT = weights["catboost_weight"]
+XGB_WEIGHT = weights["xgboost_weight"]
+LGBM_WEIGHT = weights["lightgbm_weight"]
+
+print("Dynamic Ensemble Loaded")
+
+# ==========================================
+# LOAD BUY / SELL THRESHOLDS
+# ==========================================
+
+thresholds = joblib.load(
+    "manual_thresholds.pkl"
+)
+
+BUY_THRESHOLD = thresholds["buy_threshold"]
+SELL_THRESHOLD = thresholds["sell_threshold"]
+
+print(
+    f"BUY Threshold : {BUY_THRESHOLD}"
+)
+
+print(
+    f"SELL Threshold : {SELL_THRESHOLD}"
+)
+
+# ==========================================
+# FEATURES
+# MUST MATCH WEEKLY RETRAINER
 # ==========================================
 
 FEATURES = [
-    "EMA20", "EMA50", "RSI", "ATR", "NATR",
-    "BB_WIDTH", "CHAIKIN_VOL", "VQI",
-    "TREND_STRENGTH", "CHANNEL_POSITION",
-    "SLOPE_SIGNAL", "POWER_SCORE",
+
+    "EMA20",
+    "EMA50",
+    "RSI",
+    "ATR",
+    "NATR",
+
+    "BB_WIDTH",
+    "CHAIKIN_VOL",
+    "VQI",
+
+    "TREND_STRENGTH",
+    "CHANNEL_POSITION",
+
+    "SLOPE_SIGNAL",
+
     "ACTIVE_PASSIVE",
-    "FINANCIAL_STRENGTH",
-    "pair", "timeframe",
-    "MARKET_STATE", "CANDLE_PATTERN",
-    "FREQUENCY_TYPE",
-    "h1_positive", "h1_negative", "h1_neutral",
-    "h2_positive", "h2_negative", "h2_neutral",
-    "h3_positive", "h3_negative", "h3_neutral",
-    "overall_positive", "overall_negative", "overall_neutral",
+
+    "power_score",
+
+    "financial_strength",
+
+    "pair",
+
+    "timeframe",
+
+    "market_state",
+
+    "frequency_type",
+
+    "candle_type",
+
+    "positive",
+
+    "negative",
+
+    "neutral",
+
     "news_strength",
+
     "dominant_sentiment"
+
 ]
 
+print(
+    "Manual AI Ready"
+)
+
 # ==========================================
-# MAIN PREDICTION FUNCTION
+# LIVE MANUAL AI
 # ==========================================
 
-def predict_manual_trade(df, pair, timeframe, news):
+def predict_manual_trade(
 
-    # ============================
-    # FEATURE ENGINEERING PIPELINE
-    # ============================
+        df,
 
-    df = calculate_power_score(df)
-    df = financial_strength(df)
-    df = market_state(df)
-    df = frequency_type(df, timeframe)
-    df = interesting_signal(df)
+        pair,
 
-    # Add identifiers
-    df["pair"] = pair
-    df["timeframe"] = timeframe
+        timeframe,
 
-    # ============================
-    # GET LATEST ROW
-    # ============================
+        news
 
-    latest = df.iloc[-1:].copy()
+):
 
-    # ============================
-    # SENTIMENT ANALYSIS
-    # ============================
+    if df.empty:
 
-    sentiment = finbert_scores(news)
+        return None
 
-    latest["overall_positive"] = sentiment["positive"]
-    latest["overall_negative"] = sentiment["negative"]
-    latest["overall_neutral"] = sentiment["neutral"]
-    latest["news_strength"] = sentiment["strength"]
-    latest["dominant_sentiment"] = sentiment["dominant"]
+    # ======================================
+    # POWER SCORE
+    # ======================================
 
-    # ============================
-    # ENCODE FEATURES
-    # ============================
-
-    latest = encode_features(latest)
-
-    # ============================
-    # SAFETY CHECK (VERY IMPORTANT)
-    # ============================
-
-    missing = [f for f in FEATURES if f not in latest.columns]
-    if missing:
-        raise ValueError(f"Missing features: {missing}")
-
-    # Ensure correct order
-    X = latest.reindex(columns=FEATURES)
-
-    # ============================
-    # MODEL PREDICTIONS
-    # ============================
-
-    cat = cat_model.predict_proba(X)[0][1]
-    xgb = xgb_model.predict_proba(X)[0][1]
-    lgb = lgbm_model.predict_proba(X)[0][1]
-
-    # ============================
-    # ENSEMBLE
-    # ============================
-
-    probability = (
-        0.40 * cat +
-        0.35 * xgb +
-        0.25 * lgb
+    df = calculate_power_score(
+        df
     )
 
-    # Safety clipping
-    probability = max(0, min(1, probability))
+    # ======================================
+    # FINANCIAL STRENGTH
+    # ======================================
 
-    confidence = round(probability * 100, 2)
+    df = financial_strength(
+        df
+    )
 
-    # ============================
+    # ======================================
+    # MARKET STATE
+    # ======================================
+
+    df = market_state(
+        df
+    )
+
+    # ======================================
+    # FREQUENCY TYPE
+    # ======================================
+
+    df = frequency_type(
+        df,
+        timeframe
+    )
+
+    # ======================================
+    # INTERESTING SIGNAL
+    # ======================================
+
+    df = interesting_signal(
+        df
+    )
+
+    # ======================================
+    # IDENTIFIERS
+    # ======================================
+
+    df["pair"] = pair
+
+    df["timeframe"] = timeframe
+
+    # ======================================
+    # LATEST CANDLE
+    # ======================================
+
+    latest = df.tail(1).copy()
+
+    # ======================================
+    # FINBERT
+    # ======================================
+
+    sentiment = finbert_scores(
+        news
+    )
+
+    latest["positive"] = sentiment["positive"]
+
+    latest["negative"] = sentiment["negative"]
+
+    latest["neutral"] = sentiment["neutral"]
+
+    latest["news_strength"] = sentiment["strength"]
+
+    latest["dominant_sentiment"] = sentiment["dominant"]
+
+    # ======================================
+    # SAFETY
+    # ======================================
+
+    latest.replace(
+
+        [np.inf, -np.inf],
+
+        0,
+
+        inplace=True
+
+    )
+
+    latest.fillna(
+
+        0,
+
+        inplace=True
+
+    )
+
+    # ======================================
+    # FEATURE ENCODING
+    # ======================================
+
+    latest = encode_features(
+        latest
+    )
+
+    # ======================================
+    # VERIFY FEATURES
+    # ======================================
+
+    missing = [
+
+        col
+
+        for col in FEATURES
+
+        if col not in latest.columns
+
+    ]
+
+    if missing:
+
+        raise ValueError(
+
+            f"Missing Features : {missing}"
+
+        )
+
+    X = latest[FEATURES]
+
+    # ======================================
+    # CATBOOST
+    # ======================================
+
+    cat_probability = float(
+
+        cat_model.predict_proba(
+            X
+        )[0][1]
+
+    )
+
+    # ======================================
+    # XGBOOST
+    # ======================================
+
+    xgb_probability = float(
+
+        xgb_model.predict_proba(
+            X
+        )[0][1]
+
+    )
+
+    # ======================================
+    # LIGHTGBM
+    # ======================================
+
+    lgb_probability = float(
+
+        lgbm_model.predict_proba(
+            X
+        )[0][1]
+
+    )
+
+    # ======================================
+    # DYNAMIC ENSEMBLE
+    # ======================================
+
+    probability = (
+
+        CAT_WEIGHT * cat_probability
+
+        +
+
+        XGB_WEIGHT * xgb_probability
+
+        +
+
+        LGBM_WEIGHT * lgb_probability
+
+    )
+
+    probability = float(
+
+        np.clip(
+            probability,
+            0,
+            1
+        )
+
+    )
+
+    confidence = round(
+
+        probability * 100,
+
+        2
+
+    )
+
+    print()
+
+    print("========== MANUAL AI ==========")
+
+    print("Pair :", pair)
+
+    print("Timeframe :", timeframe)
+
+    print()
+
+    print("CatBoost :", round(cat_probability,4))
+
+    print("XGBoost :", round(xgb_probability,4))
+
+    print("LightGBM :", round(lgb_probability,4))
+
+    print()
+
+    print("Ensemble :", round(probability,4))
+
+    print("Confidence :", confidence)
+
+    print()
+
+    print("===============================")
+
+    # ======================================
     # FINAL SIGNAL
-    # ============================
+    # ======================================
 
-    if probability > threshold_high:
-      signal = "STRONG BUY"
-    elif probability > threshold:
-      signal = "BUY"
-    elif probability < sell_threshold:
-      signal = "SELL"
+    if probability >= BUY_THRESHOLD:
+
+        signal = "BUY"
+
+    elif probability <= SELL_THRESHOLD:
+
+        signal = "SELL"
+
     else:
-      signal = "NO TRADE"
 
-    # ============================
+        signal = "NO TRADE"
+
+    # ======================================
+    # SIGNAL STRENGTH
+    # ======================================
+
+    if probability >= 0.90:
+
+        strength = "VERY STRONG"
+
+    elif probability >= 0.80:
+
+        strength = "STRONG"
+
+    elif probability >= BUY_THRESHOLD:
+
+        strength = "MODERATE"
+
+    elif probability <= SELL_THRESHOLD:
+
+        strength = "STRONG SELL"
+
+    else:
+
+        strength = "NEUTRAL"
+
+    # ======================================
+    # INTERESTING SIGNAL
+    # ======================================
+
+    interesting = bool(
+
+        latest.iloc[0][
+
+            "INTERESTING_SIGNAL"
+
+        ]
+
+    )
+
+    # ======================================
     # OUTPUT
-    # ============================
+    # ======================================
 
-    return {
+    result = {
+
         "signal": signal,
+
+        "strength": strength,
+
         "confidence": confidence,
+
         "probability": probability,
-        "catboost": float(cat),
-        "xgboost": float(xgb),
-        "lightgbm": float(lgb),
-        "interesting_signal": int(latest.iloc[0]["INTERESTING_SIGNAL"])
+
+        "buy_threshold": BUY_THRESHOLD,
+
+        "sell_threshold": SELL_THRESHOLD,
+
+        "catboost": round(
+
+            cat_probability,
+
+            4
+
+        ),
+
+        "xgboost": round(
+
+            xgb_probability,
+
+            4
+
+        ),
+
+        "lightgbm": round(
+
+            lgb_probability,
+
+            4
+
+        ),
+
+        "interesting_signal": interesting,
+
+        "power_score": float(
+
+            latest.iloc[0][
+
+                "power_score"
+
+            ]
+
+        ),
+
+        "financial_strength": float(
+
+            latest.iloc[0][
+
+                "financial_strength"
+
+            ]
+
+        ),
+
+        "market_state": latest.iloc[0][
+
+            "market_state"
+
+        ],
+
+        "frequency_type": latest.iloc[0][
+
+            "frequency_type"
+
+        ],
+
+        "candle_type": latest.iloc[0][
+
+            "candle_type"
+
+        ],
+
+        "positive_news": float(
+
+            latest.iloc[0][
+
+                "positive"
+
+            ]
+
+        ),
+
+        "negative_news": float(
+
+            latest.iloc[0][
+
+                "negative"
+
+            ]
+
+        ),
+
+        "neutral_news": float(
+
+            latest.iloc[0][
+
+                "neutral"
+
+            ]
+
+        ),
+
+        "news_strength": float(
+
+            latest.iloc[0][
+
+                "news_strength"
+
+            ]
+
+        ),
+
+        "dominant_sentiment": latest.iloc[0][
+
+            "dominant_sentiment"
+
+        ]
+
     }
+
+    return result
+
+# ==========================================
+# DEBUG OUTPUT
+# ==========================================
+
+    print()
+
+    print("============== MANUAL AI RESULT ==============")
+
+    print("Signal              :", result["signal"])
+    print("Strength            :", result["strength"])
+    print("Confidence          :", result["confidence"])
+    print("Probability         :", round(result["probability"],4))
+
+    print()
+
+    print("BUY Threshold       :", BUY_THRESHOLD)
+    print("SELL Threshold      :", SELL_THRESHOLD)
+
+    print()
+
+    print("Power Score         :", result["power_score"])
+    print("Financial Strength  :", result["financial_strength"])
+
+    print()
+
+    print("Market State        :", result["market_state"])
+    print("Frequency           :", result["frequency_type"])
+    print("Candle              :", result["candle_type"])
+
+    print()
+
+    print("Interesting Signal  :", result["interesting_signal"])
+
+    print()
+
+    print("Positive News       :", round(result["positive_news"],4))
+    print("Negative News       :", round(result["negative_news"],4))
+    print("Neutral News        :", round(result["neutral_news"],4))
+    print("News Strength       :", round(result["news_strength"],4))
+    print("Sentiment           :", result["dominant_sentiment"])
+
+    print()
+
+    print("CatBoost            :", round(result["catboost"],4))
+    print("XGBoost             :", round(result["xgboost"],4))
+    print("LightGBM            :", round(result["lightgbm"],4))
+
+    print("=============================================")
+
+    return result
+
+
+# ==========================================
+# FAIL SAFE
+# ==========================================
+
+def safe_predict_manual_trade(
+        df,
+        pair,
+        timeframe,
+        news
+):
+
+    try:
+
+        result = predict_manual_trade(
+            df,
+            pair,
+            timeframe,
+            news
+        )
+
+        if result is None:
+
+            return None
+
+        if np.isnan(result["probability"]):
+
+            print("Probability is NaN")
+
+            return None
+
+        if np.isinf(result["probability"]):
+
+            print("Probability is Infinite")
+
+            return None
+
+        return result
+
+    except Exception as e:
+
+        print()
+
+        print("MANUAL AI ERROR")
+
+        print(e)
+
+        print()
+
+        return {
+
+            "signal":"NO TRADE",
+
+            "strength":"ERROR",
+
+            "confidence":0,
+
+            "probability":0,
+
+            "buy_threshold":BUY_THRESHOLD,
+
+            "sell_threshold":SELL_THRESHOLD,
+
+            "catboost":0,
+
+            "xgboost":0,
+
+            "lightgbm":0,
+
+            "interesting_signal":False,
+
+            "power_score":0,
+
+            "financial_strength":0,
+
+            "market_state":"UNKNOWN",
+
+            "frequency_type":"UNKNOWN",
+
+            "candle_type":"UNKNOWN",
+
+            "positive_news":0,
+
+            "negative_news":0,
+
+            "neutral_news":0,
+
+            "news_strength":0,
+
+            "dominant_sentiment":"UNKNOWN"
+
+        }
+
+
+print()
+print("======================================")
+print("MANUAL AI ENGINE READY")
+print("======================================")
