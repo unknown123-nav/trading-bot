@@ -317,122 +317,234 @@ SL: £{round(sl_gbp, 2)}
 # =========================================
 #  MANUAL (NO TRADES)
 # =========================================
+# =========================================
+# MANUAL AI (30m / 1H)
+# =========================================
 def process_manual(symbol, timeframe, table_name):
 
     if timeframe not in MANUAL_TFS:
         return
 
-    df = get_data(symbol, timeframe, 40)
-    if df.empty:
-        return
+    try:
 
-    latest = float(df.iloc[0]['close'])
-    news = get_news(symbol)
-    ai_result = safe_predict_manual_trade(
-    df=df,
-    pair=symbol,
-    timeframe=timeframe,
-    news = fetch_news(symbol)
-)
+        # ==============================
+        # MARKET DATA
+        # ==============================
 
-if ai_result is None:
-    return
+        df = get_data(symbol, timeframe, 40)
 
-if ai_result["signal"] == "NO TRADE":
-    print(f"MANUAL AI -> NO TRADE {symbol}")
-    return
-
-direction = "UP" if ai_result["signal"] == "BUY" else "DOWN"
-
-confidence = ai_result["confidence"]
-    candle_type = detect_candle_pattern(df)
-
-    GBP_RATE = 0.74  
-    gbp_price = latest * GBP_RATE
-    avg = float(df['close'].mean())
-    volatility = abs(latest - avg) / avg * 100
-
-    direction = "UP" if latest > avg else "DOWN"
-    if volatility < 5.6 :
-        print(f" MANUAL SKIP → {symbol} {timeframe} | Vol: {round(volatility,2)}")
-        return
-
-    confidence = round(min(95, 50 + (volatility * 10)), 2)
-
-    key = f"{symbol}_{timeframe}_MANUAL"
-    if key in last_signal_time:
-        if time.time() - last_signal_time[key] < 300:
+        if df.empty:
             return
 
-    last_signal_time[key] = time.time()
+        latest = float(df.iloc[0]["close"])
 
-    direction_text = direction
-    signal_type = "LONG" if direction == "UP" else "SHORT"
-    
-    uk_time = get_uk_time().strftime("%H:%M:%S")
+        GBP_RATE = 0.74
+        gbp_price = latest * GBP_RATE
 
-    message_text = f"""
-📡 MANUAL SIGNAL
+        # ==============================
+        # PREVENT SPAM
+        # ==============================
 
-Pair: {symbol}
-Direction: {direction_text}
-candle_type: {candle_type}
-Timeframe: {timeframe}
+        key = f"{symbol}_{timeframe}_MANUAL"
 
-Volatility: {round(volatility,2)}%
-Confidence: {confidence}%
-Time: {uk_time}
+        if key in last_signal_time:
+            if time.time() - last_signal_time[key] < 300:
+                return
+
+        # ==============================
+        # NEWS
+        # ==============================
+
+        articles = fetch_news(symbol)
+
+        if articles:
+
+            news = {
+                "headline": articles[0].get("title", ""),
+                "summary": articles[0].get("summary", "")
+            }
+
+        else:
+
+            news = None
+
+        # ==============================
+        # MANUAL AI
+        # ==============================
+
+        ai_result = safe_predict_manual_trade(
+            df=df,
+            pair=symbol,
+            timeframe=timeframe,
+            news=news
+        )
+
+        if ai_result is None:
+            return
+
+        if ai_result["signal"] == "NO TRADE":
+            print(f"MANUAL AI -> NO TRADE | {symbol} {timeframe}")
+            return
+
+        # ==============================
+        # AI OUTPUT
+        # ==============================
+
+        direction = (
+            "UP"
+            if ai_result["signal"] == "BUY"
+            else "DOWN"
+        )
+
+        signal_type = (
+            "LONG"
+            if direction == "UP"
+            else "SHORT"
+        )
+
+        confidence = ai_result["confidence"]
+
+        candle_type = ai_result["candle_type"]
+
+        power_score = ai_result["power_score"]
+
+        financial_strength = ai_result["financial_strength"]
+
+        market_state = ai_result["market_state"]
+
+        frequency_type = ai_result["frequency_type"]
+
+        volatility = float(df.iloc[0]["NATR"])
+
+        uk_time = get_uk_time().strftime("%H:%M:%S")
+
+        last_signal_time[key] = time.time()
+
+        # ==============================
+        # TELEGRAM
+        # ==============================
+
+        message = f"""
+📡 MANUAL AI SIGNAL
+
+Pair : {symbol}
+
+Direction : {direction}
+
+Signal : {ai_result['signal']}
+
+Confidence : {confidence}%
+
+Strength : {ai_result['strength']}
+
+Probability : {round(ai_result['probability'],4)}
+
+Power Score : {power_score}
+
+Financial Strength : {financial_strength}
+
+Market State : {market_state}
+
+Frequency : {frequency_type}
+
+Candle : {candle_type}
+
+Timeframe : {timeframe}
+
+Time : {uk_time}
 """
 
-    send_message(MANUAL_CHAT_ID, message_text)
+        send_message(
+            MANUAL_CHAT_ID,
+            message
+        )
 
-    save_signal(table_name, symbol, signal_type, confidence, latest,candle_type, volatility, trade_source="MANUAL")
+        save_telegram_log(
+            message,
+            "MANUAL_CHANNEL",
+            "SENT"
+        )
 
-    save_training_signal(
+        # ==============================
+        # SAVE SIGNAL
+        # ==============================
 
-time=df.iloc[0]["time"],
+        save_signal(
+            table_name,
+            symbol,
+            signal_type,
+            confidence,
+            latest,
+            candle_type,
+            volatility,
+            trade_source="MANUAL"
+        )
 
-uk_time=get_uk_time(),
+        # ==============================
+        # SAVE TRAINING DATASET
+        # ==============================
 
-pair=symbol,
+        save_training_signal(
 
-timeframe=timeframe,
+            time=df.iloc[0]["time"],
 
-price=latest,
+            uk_time=get_uk_time(),
 
-price_gbp=gbp_price,
+            pair=symbol,
 
-ema20=float(df.iloc[0]["EMA20"]),
-ema50=float(df.iloc[0]["EMA50"]),
-rsi=float(df.iloc[0]["RSI"]),
-atr=float(df.iloc[0]["ATR"]),
-natr=float(df.iloc[0]["NATR"]),
-bb_width=float(df.iloc[0]["BB_WIDTH"]),
-chaikin_vol=float(df.iloc[0]["CHAIKIN_VOL"]),
-vqi=float(df.iloc[0]["VQI"]),
-trend_strength=float(df.iloc[0]["TREND_STRENGTH"]),
-channel_position=float(df.iloc[0]["CHANNEL_POSITION"]),
+            timeframe=timeframe,
 
-direction=direction,
+            price=latest,
 
-confidence=confidence,
+            price_gbp=gbp_price,
 
-power_score=confidence,
+            ema20=float(df.iloc[0]["EMA20"]),
 
-financial_strength=0,
+            ema50=float(df.iloc[0]["EMA50"]),
 
-signal_class="INTERESTING",
+            rsi=float(df.iloc[0]["RSI"]),
 
-market_state="NORMAL",
+            atr=float(df.iloc[0]["ATR"]),
 
-frequency_type="MIDDLE",
+            natr=float(df.iloc[0]["NATR"]),
 
-candle_type=candle_type
-)
+            bb_width=float(df.iloc[0]["BB_WIDTH"]),
 
-    save_telegram_log(message_text, "MANUAL_CHANNEL", "SENT")
+            chaikin_vol=float(df.iloc[0]["CHAIKIN_VOL"]),
 
+            vqi=float(df.iloc[0]["VQI"]),
 
+            trend_strength=float(df.iloc[0]["TREND_STRENGTH"]),
+
+            channel_position=float(df.iloc[0]["CHANNEL_POSITION"]),
+
+            direction=direction,
+
+            confidence=confidence,
+
+            power_score=power_score,
+
+            financial_strength=financial_strength,
+
+            signal_class="INTERESTING",
+
+            market_state=market_state,
+
+            frequency_type=frequency_type,
+
+            candle_type=candle_type
+
+        )
+
+        print(
+            f"MANUAL AI SIGNAL SAVED -> {symbol} {timeframe}"
+        )
+
+    except Exception as e:
+
+        print(
+            f"MANUAL ERROR -> {symbol} {timeframe}: {e}"
+        )
 # =========================================
 #  MONITOR TRADES
 # =========================================
