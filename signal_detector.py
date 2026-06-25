@@ -1,82 +1,12 @@
 import numpy as np
 
-
 # ==========================================
-# CANDLE PATTERN
-# ==========================================
-
-def candle_pattern(df):
-
-    latest = df.iloc[-1]
-
-    body = abs(
-        latest["close"] -
-        latest["open"]
-    )
-
-    candle_range = (
-        latest["high"] -
-        latest["low"]
-    )
-
-    upper_shadow = (
-        latest["high"] -
-        max(
-            latest["close"],
-            latest["open"]
-        )
-    )
-
-    lower_shadow = (
-        min(
-            latest["close"],
-            latest["open"]
-        )
-        -
-        latest["low"]
-    )
-
-    if candle_range == 0:
-        return "FLAT"
-
-    body_ratio = body / candle_range
-
-    if body_ratio < 0.10:
-        return "DOJI"
-
-    if (
-        lower_shadow >
-        body * 2
-        and
-        upper_shadow < body
-    ):
-        return "HAMMER"
-
-    if (
-        upper_shadow >
-        body * 2
-        and
-        lower_shadow < body
-    ):
-        return "SHOOTING_STAR"
-
-    if latest["close"] > latest["open"]:
-        return "BULLISH"
-
-    return "BEARISH"
-
-
-# ==========================================
-# 3 BAR SLOPE
+# SLOPE SIGNAL
 # ==========================================
 
 def slope_signal(df):
 
-    closes = (
-        df["close"]
-        .tail(3)
-        .values
-    )
+    closes = df["close"].tail(3).values
 
     x = np.arange(3)
 
@@ -91,37 +21,81 @@ def slope_signal(df):
         closes[-1]
     ) * 100
 
-    if pct > 0.30:
-        return "STRONG_UP"
+    if pct >= 0.40:
+        return 4
 
-    elif pct > 0.10:
-        return "UP"
+    elif pct >= 0.20:
+        return 3
 
-    elif pct < -0.30:
-        return "STRONG_DOWN"
+    elif pct >= 0.05:
+        return 2
 
-    elif pct < -0.10:
-        return "DOWN"
+    elif pct > -0.05:
+        return 1
+
+    elif pct > -0.20:
+        return -1
+
+    elif pct > -0.40:
+        return -2
 
     else:
-        return "FLAT"
+        return -3
 
 
 # ==========================================
-# TREND DIRECTION
+# ACTIVE / PASSIVE
 # ==========================================
 
-def trend_direction(df):
+def active_passive(df):
 
     latest = df.iloc[-1]
 
-    if latest["EMA20"] > latest["EMA50"]:
-        return "UP"
+    score = 0
 
-    elif latest["EMA20"] < latest["EMA50"]:
-        return "DOWN"
+    if latest["NATR"] > 2:
+        score += 1
 
-    return "SIDEWAYS"
+    if latest["CHAIKIN_VOL"] > 5:
+        score += 1
+
+    if latest["TREND_STRENGTH"] > 1:
+        score += 1
+
+    if latest["VQI"] > 0.70:
+        score += 1
+
+    return score
+
+
+# ==========================================
+# CANDLE PATTERN
+# ==========================================
+
+def candle_pattern(df):
+
+    latest = df.iloc[-1]
+
+    body = abs(
+        latest["close"] -
+        latest["open"]
+    )
+
+    rng = (
+        latest["high"] -
+        latest["low"]
+    )
+
+    if rng == 0:
+        return "Flat"
+
+    if body <= rng * 0.10:
+        return "Doji"
+
+    if latest["close"] > latest["open"]:
+        return "Bullish Candle"
+
+    return "Bearish Candle"
 
 
 # ==========================================
@@ -134,52 +108,32 @@ def interesting_signal(df):
 
     score = 0
 
-    # RSI
-
-    if latest["RSI"] < 30:
-
+    if latest["TREND_STRENGTH"] > 1:
         score += 2
-
-    elif latest["RSI"] > 70:
-
-        score += 2
-
-    # Volatility
 
     if latest["NATR"] > 2:
-
         score += 2
 
-    # Trend
-
-    if latest["TREND_STRENGTH"] > 1:
-
+    if latest["RSI"] < 30 or latest["RSI"] > 70:
         score += 2
 
-    # Bollinger Width
+    if latest["VQI"] > 0.70:
+        score += 2
 
-    if latest["BB_WIDTH"] > 1:
-
+    if latest["CHANNEL_POSITION"] > 0.85:
         score += 1
 
-    # Chaikin
-
-    if abs(
-        latest["CHAIKIN_VOL"]
-    ) > 10:
-
+    if latest["CHANNEL_POSITION"] < 0.15:
         score += 1
 
-    signal = int(score >= 5)
-
-    df["INTERESTING_SIGNAL"] = signal
+    df["INTERESTING_SIGNAL"] = int(score >= 5)
 
     df["SIGNAL_SCORE"] = score
 
     df["SLOPE_SIGNAL"] = slope_signal(df)
 
-    df["CANDLE_PATTERN"] = candle_pattern(df)
+    df["ACTIVE_PASSIVE"] = active_passive(df)
 
-    df["TREND_DIRECTION"] = trend_direction(df)
+    df["CANDLE_PATTERN"] = candle_pattern(df)
 
     return df
