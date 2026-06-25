@@ -10,7 +10,7 @@ from db import (
 
 from config import AUTO_CHAT_ID, MANUAL_CHAT_ID
 
-BOT_TOKEN = "8836401905:AAFon5yaeRiBEZ5cApnbSx4zIj2VElgv4ns"
+BOT_TOKEN = "8626450626:AAExgPikQRBaL3HnE98v58ZrmsqjrfWr99c"
 LAST_UPDATE_ID = None
 
 
