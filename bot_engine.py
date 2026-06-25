@@ -10,6 +10,8 @@ from config import SYMBOLS
 from ai_engine import predict_signal
 from historical_builder import save_training_signal
 from outcome_tracker import update_targets
+from manual_ai_engine import safe_predict_manual_trade
+from news_fetcher import get_news
 
 print("bot_engine LOADED")
 processing = {}
@@ -325,6 +327,25 @@ def process_manual(symbol, timeframe, table_name):
         return
 
     latest = float(df.iloc[0]['close'])
+    news = get_news(symbol)
+
+ai_result = safe_predict_manual_trade(
+    df=df,
+    pair=symbol,
+    timeframe=timeframe,
+    news=news
+)
+
+if ai_result is None:
+    return
+
+if ai_result["signal"] == "NO TRADE":
+    print(f"MANUAL AI -> NO TRADE {symbol}")
+    return
+
+direction = "UP" if ai_result["signal"] == "BUY" else "DOWN"
+
+confidence = ai_result["confidence"]
     candle_type = detect_candle_pattern(df)
 
     GBP_RATE = 0.74  
