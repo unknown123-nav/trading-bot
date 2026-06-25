@@ -1,3 +1,4 @@
+print("BOT_ENGINE FILE STARTING")
 import time
 import requests
 from datetime import datetime
@@ -13,7 +14,6 @@ from outcome_tracker import update_targets
 from manual_ai_engine import safe_predict_manual_trade
 from news_fetcher import fetch_news
 
-print("bot_engine LOADED")
 processing = {}
 recent_symbols = {}
 last_signal_time = {}
