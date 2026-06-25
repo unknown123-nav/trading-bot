@@ -1,21 +1,28 @@
 import torch
-
 from transformers import (
     AutoTokenizer,
     AutoModelForSequenceClassification
 )
 
-print("Loading FinBERT...")
+print("1 - Starting FinBERT import")
+
+print("2 - Torch imported")
+
+print("3 - Transformers imported")
 
 MODEL = "ProsusAI/finbert"
 
-tokenizer = AutoTokenizer.from_pretrained(
-    MODEL
-)
+print("4 - Loading tokenizer...")
 
-model = AutoModelForSequenceClassification.from_pretrained(
-    MODEL
-)
+tokenizer = AutoTokenizer.from_pretrained(MODEL)
+
+print("5 - Tokenizer loaded")
+
+print("6 - Loading model...")
+
+model = AutoModelForSequenceClassification.from_pretrained(MODEL)
+
+print("7 - Model loaded")
 
 model.eval()
 
@@ -33,8 +40,7 @@ LABELS = [
     "neutral"
 ]
 
-print("FinBERT Ready")
-
+print("8 - FinBERT READY")
 
 # ==========================================
 # LIVE FINBERT
