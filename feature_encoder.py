@@ -69,8 +69,8 @@ def encode_features(df):
         .astype(int)
     )
 
-    df["MARKET_STATE"] = (
-        df["MARKET_STATE"]
+    df["market_state"] = (
+        df["market_state"]
         .map(MARKET_STATE_MAP)
         .fillna(-1)
         .astype(int)
@@ -83,8 +83,8 @@ def encode_features(df):
         .astype(int)
     )
 
-    df["FREQUENCY_TYPE"] = (
-        df["FREQUENCY_TYPE"]
+    df["frequency_type"] = (
+        df["frequency_type"]
         .map(FREQUENCY_MAP)
         .fillna(-1)
         .astype(int)
