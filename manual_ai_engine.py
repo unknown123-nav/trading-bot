@@ -640,7 +640,7 @@ def safe_predict_manual_trade(
 
             return None
 
-        return result
+        
 
     except Exception as e:
 
@@ -695,6 +695,9 @@ def safe_predict_manual_trade(
             "dominant_sentiment":"UNKNOWN"
 
         }
+        return result
+
+
 
 
 print()
