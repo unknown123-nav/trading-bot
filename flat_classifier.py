@@ -81,6 +81,6 @@ def market_state(df):
 
         state = "NORMAL"
 
-    df["market_state"] = state
+    df["MARKET_STATE"] = state
 
     return df
