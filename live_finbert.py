@@ -1,37 +1,78 @@
+import torch
+
 from transformers import (
     AutoTokenizer,
     AutoModelForSequenceClassification
 )
 
-import torch
-import numpy as np
-
-MODEL_NAME = "ProsusAI/finbert"
-
 print("Loading FinBERT...")
 
+MODEL = "ProsusAI/finbert"
+
 tokenizer = AutoTokenizer.from_pretrained(
-    MODEL_NAME
+    MODEL
 )
 
 model = AutoModelForSequenceClassification.from_pretrained(
-    MODEL_NAME
+    MODEL
 )
-
-device = "cuda" if torch.cuda.is_available() else "cpu"
-
-model.to(device)
 
 model.eval()
 
+device = (
+    "cuda"
+    if torch.cuda.is_available()
+    else "cpu"
+)
+
+model.to(device)
+
+LABELS = [
+    "positive",
+    "negative",
+    "neutral"
+]
+
 print("FinBERT Ready")
-def analyse(text):
 
-    if text is None:
-        text = "NO_NEWS"
 
-    if text == "":
-        text = "NO_NEWS"
+# ==========================================
+# LIVE FINBERT
+# ==========================================
+
+def finbert_scores(news):
+
+    if (
+        news is None
+        or
+        "headline" not in news
+    ):
+
+        return {
+
+            "positive":0,
+
+            "negative":0,
+
+            "neutral":1,
+
+            "strength":0,
+
+            "dominant":"NEUTRAL"
+
+        }
+
+    text = (
+        str(news["headline"])
+        + " "
+        +
+        str(
+            news.get(
+                "summary",
+                ""
+            )
+        )
+    )
 
     inputs = tokenizer(
 
@@ -41,9 +82,9 @@ def analyse(text):
 
         truncation=True,
 
-        padding=True,
+        max_length=128,
 
-        max_length=128
+        padding=True
 
     )
 
@@ -73,96 +114,22 @@ def analyse(text):
 
     neutral = float(probs[2])
 
-    return positive,negative,neutral
+    strength = positive - negative
 
-def analyse_news(news):
+    dominant = LABELS[
+        probs.argmax().item()
+    ].upper()
 
-    headlines = []
+    return {
 
-    for item in news:
+        "positive":positive,
 
-        headlines.append(
-            item["headline"]
-        )
+        "negative":negative,
 
-    while len(headlines) < 3:
+        "neutral":neutral,
 
-        headlines.append(
-            "NO_NEWS"
-        )
+        "strength":strength,
 
-    p1,n1,u1 = analyse(headlines[0])
-
-    p2,n2,u2 = analyse(headlines[1])
-
-    p3,n3,u3 = analyse(headlines[2])
-
-    overall_positive = (
-
-        p1+p2+p3
-
-    )/3
-
-    overall_negative = (
-
-        n1+n2+n3
-
-    )/3
-
-    overall_neutral = (
-
-        u1+u2+u3
-
-    )/3
-
-    news_strength = (
-
-        overall_positive
-
-        -
-
-        overall_negative
-
-    )
-
-    values = {
-
-        "h1_positive":p1,
-        "h1_negative":n1,
-        "h1_neutral":u1,
-
-        "h2_positive":p2,
-        "h2_negative":n2,
-        "h2_neutral":u2,
-
-        "h3_positive":p3,
-        "h3_negative":n3,
-        "h3_neutral":u3,
-
-        "overall_positive":overall_positive,
-        "overall_negative":overall_negative,
-        "overall_neutral":overall_neutral,
-
-        "news_strength":news_strength
+        "dominant":dominant
 
     }
-
-    sentiment = {
-
-        "POSITIVE":overall_positive,
-
-        "NEGATIVE":overall_negative,
-
-        "NEUTRAL":overall_neutral
-
-    }
-
-    values["dominant_sentiment"] = max(
-
-        sentiment,
-
-        key=sentiment.get
-
-    )
-
-    return values
