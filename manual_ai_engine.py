@@ -103,7 +103,7 @@ FEATURES = [
 
     "frequency_type",
 
-    "candle_type",
+    "CANDLE_PATTERN",
 
     "positive",
 
@@ -496,11 +496,9 @@ def predict_manual_trade(
 
         ],
 
-        "candle_type": latest.iloc[0][
+        "candle_type": latest.iloc[0]["CANDLE_PATTERN"],
 
-            "candle_type"
 
-        ],
 
         "positive_news": float(
 
@@ -550,7 +548,7 @@ def predict_manual_trade(
 
     }
 
-    return result
+
 
 # ==========================================
 # DEBUG OUTPUT
@@ -639,6 +637,8 @@ def safe_predict_manual_trade(
             print("Probability is Infinite")
 
             return None
+            
+        return result
 
         
 
@@ -695,12 +695,4 @@ def safe_predict_manual_trade(
             "dominant_sentiment":"UNKNOWN"
 
         }
-        return result
 
-
-
-
-print()
-print("======================================")
-print("MANUAL AI ENGINE READY")
-print("======================================")
