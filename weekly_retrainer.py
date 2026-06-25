@@ -10,6 +10,7 @@ from model_backup import backup_models
 from catboost import CatBoostClassifier
 from xgboost import XGBClassifier
 from lightgbm import LGBMClassifier
+from feature_encoder import encode_features
 
 from sklearn.metrics import (
     roc_auc_score,
@@ -117,15 +118,15 @@ if missing:
 # ==========================================
 # PREPARE DATA
 # ==========================================
-
+df = encode_features(df)
 X = df[FEATURES].copy()
 
 y = df["target"].copy()
 
 # Replace missing numeric values
 
+X = X.replace([np.inf, -np.inf], 0)
 X = X.fillna(0)
-
 # Remove rows with missing targets
 
 mask = y.notna()
@@ -170,7 +171,11 @@ print("=" * 60)
 # ==========================================
 # CATBOOST
 # ==========================================
+print()
 
+print(
+    datetime.now().strftime("%Y-%m-%d %H:%M")
+)
 print()
 print("Training CatBoost...")
 
@@ -361,16 +366,22 @@ print(
 
 print("="*60)
 # ==========================================
-# FIND BEST THRESHOLD
+# FIND BUY / SELL THRESHOLDS
 # ==========================================
 
 print()
-print("Searching BUY Threshold...")
+print("=" * 60)
+print("OPTIMIZING THRESHOLDS")
+print("=" * 60)
+
+# ------------------------
+# BUY Threshold
+# ------------------------
 
 best_buy = 0.80
 best_buy_score = -1
 
-for threshold in np.arange(0.50,0.96,0.01):
+for threshold in np.arange(0.50, 0.96, 0.01):
 
     predictions = (
         ensemble_val >= threshold
@@ -387,34 +398,17 @@ for threshold in np.arange(0.50,0.96,0.01):
         best_buy_score = score
         best_buy = float(threshold)
 
-print(
-    f"BUY Threshold : {best_buy:.2f}"
-)
+print(f"BUY Threshold : {best_buy:.2f}")
+print(f"BUY F1 Score  : {best_buy_score:.4f}")
 
-print(
-    f"BUY F1 Score : {best_buy_score:.4f}"
-)
-
-print()
-
-print(
-    "Best Threshold :",
-    round(best_threshold,2)
-)
-
-print(
-    "Best F1 Score :",
-    round(best_f1,4)
-)
-
-print("=" * 60)
-print()
-print("Searching SELL Threshold...")
+# ------------------------
+# SELL Threshold
+# ------------------------
 
 best_sell = 0.20
 best_sell_score = -1
 
-for threshold in np.arange(0.05,0.51,0.01):
+for threshold in np.arange(0.05, 0.51, 0.01):
 
     predictions = (
         ensemble_val <= threshold
@@ -431,17 +425,31 @@ for threshold in np.arange(0.05,0.51,0.01):
         best_sell_score = score
         best_sell = float(threshold)
 
-print(
-    f"SELL Threshold : {best_sell:.2f}"
-)
+print(f"SELL Threshold : {best_sell:.2f}")
+print(f"SELL F1 Score  : {best_sell_score:.4f}")
 
-print(
-    f"SELL F1 Score : {best_sell_score:.4f}"
-)
+# ==========================================
+# KEEP A SAFE NO-TRADE ZONE
+# ==========================================
+
+if best_buy - best_sell < 0.20:
+
+    print()
+    print("Thresholds too close.")
+    print("Applying safe default gap.")
+
+    best_buy = 0.70
+    best_sell = 0.30
+
+print()
+print(f"FINAL BUY THRESHOLD  : {best_buy:.2f}")
+print(f"FINAL SELL THRESHOLD : {best_sell:.2f}")
+
 # ==========================================
 # SAVE MODELS
 # ==========================================
 
+print()
 print("Saving Models...")
 
 joblib.dump(
@@ -473,16 +481,14 @@ thresholds = {
 }
 
 joblib.dump(
-
     thresholds,
-
     "manual_thresholds.pkl"
-
 )
+
 print("Models Saved")
 
 # ==========================================
-# SAVE TRAINING METADATA
+# SAVE TRAINING INFO
 # ==========================================
 
 training_info = {
@@ -520,8 +526,11 @@ training_info = {
     "lightgbm_weight":
         round(LGBM_WEIGHT,4),
 
-    "best_threshold":
-        round(best_threshold,2)
+    "buy_threshold":
+        round(best_buy,2),
+
+    "sell_threshold":
+        round(best_sell,2)
 
 }
 
@@ -540,9 +549,7 @@ with open(
 ) as f:
 
     f.write("\n")
-
     f.write("=" * 60)
-
     f.write("\n")
 
     f.write(
@@ -553,42 +560,28 @@ with open(
 
     f.write("\n")
 
-    f.write(
-        f"Rows : {len(df)}\n"
-    )
+    f.write(f"Rows : {len(df)}\n")
+    f.write(f"Features : {len(FEATURES)}\n")
 
-    f.write(
-        f"Features : {len(FEATURES)}\n"
-    )
+    f.write(f"Validation AUC : {val_auc:.4f}\n")
+    f.write(f"Test AUC : {test_auc:.4f}\n")
 
-    f.write(
-        f"Validation AUC : {val_auc:.4f}\n"
-    )
+    f.write(f"CatBoost Weight : {CAT_WEIGHT:.4f}\n")
+    f.write(f"XGBoost Weight : {XGB_WEIGHT:.4f}\n")
+    f.write(f"LightGBM Weight : {LGBM_WEIGHT:.4f}\n")
 
-    f.write(
-        f"Test AUC : {test_auc:.4f}\n"
-    )
+    f.write(f"BUY Threshold : {best_buy:.2f}\n")
+    f.write(f"SELL Threshold : {best_sell:.2f}\n")
 
-    f.write(
-        f"CatBoost Weight : {CAT_WEIGHT:.4f}\n"
-    )
-
-    f.write(
-        f"XGBoost Weight : {XGB_WEIGHT:.4f}\n"
-    )
-
-    f.write(
-        f"LightGBM Weight : {LGBM_WEIGHT:.4f}\n"
-    )
-
-    f.write(
-        f"Best Threshold : {best_threshold:.2f}\n"
-    )
+# ==========================================
+# FINISHED
+# ==========================================
 
 print()
 print("=" * 60)
 print("WEEKLY RETRAINING COMPLETE")
 print("=" * 60)
+
 print()
 
 print("Validation AUC :", round(val_auc,4))
@@ -602,8 +595,9 @@ print("LightGBM Weight :", round(LGBM_WEIGHT,4))
 
 print()
 
-print("Best Threshold :", round(best_threshold,2))
+print("BUY Threshold  :", round(best_buy,2))
+print("SELL Threshold :", round(best_sell,2))
 
 print()
 
-print("Models Updated Successfully")
+print("Manual AI Models Updated Successfully")
