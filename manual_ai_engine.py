@@ -454,7 +454,7 @@ def predict_manual_trade(
 
             latest.iloc[0][
 
-                "power_score"
+                "POWER_SCORE"
 
             ]
 
@@ -464,7 +464,7 @@ def predict_manual_trade(
 
             latest.iloc[0][
 
-                "financial_strength"
+                "FINANCIAL_STRENGTH"
 
             ]
 
@@ -472,13 +472,13 @@ def predict_manual_trade(
 
         "market_state": latest.iloc[0][
 
-            "market_state"
+            "MARKET_STATE"
 
         ],
 
         "frequency_type": latest.iloc[0][
 
-            "frequency_type"
+            "FREQUENCY_TYPE"
 
         ],
 
