@@ -365,12 +365,12 @@ print("="*60)
 # ==========================================
 
 print()
-print("Searching for Best Threshold...")
+print("Searching BUY Threshold...")
 
-best_threshold = 0.50
-best_f1 = 0
+best_buy = 0.80
+best_buy_score = -1
 
-for threshold in np.arange(0.30, 0.91, 0.01):
+for threshold in np.arange(0.50,0.96,0.01):
 
     predictions = (
         ensemble_val >= threshold
@@ -378,13 +378,22 @@ for threshold in np.arange(0.30, 0.91, 0.01):
 
     score = f1_score(
         y_val,
-        predictions
+        predictions,
+        zero_division=0
     )
 
-    if score > best_f1:
+    if score > best_buy_score:
 
-        best_f1 = score
-        best_threshold = float(threshold)
+        best_buy_score = score
+        best_buy = float(threshold)
+
+print(
+    f"BUY Threshold : {best_buy:.2f}"
+)
+
+print(
+    f"BUY F1 Score : {best_buy_score:.4f}"
+)
 
 print()
 
@@ -399,7 +408,36 @@ print(
 )
 
 print("=" * 60)
+print()
+print("Searching SELL Threshold...")
 
+best_sell = 0.20
+best_sell_score = -1
+
+for threshold in np.arange(0.05,0.51,0.01):
+
+    predictions = (
+        ensemble_val <= threshold
+    ).astype(int)
+
+    score = f1_score(
+        1 - y_val,
+        predictions,
+        zero_division=0
+    )
+
+    if score > best_sell_score:
+
+        best_sell_score = score
+        best_sell = float(threshold)
+
+print(
+    f"SELL Threshold : {best_sell:.2f}"
+)
+
+print(
+    f"SELL F1 Score : {best_sell_score:.4f}"
+)
 # ==========================================
 # SAVE MODELS
 # ==========================================
@@ -426,11 +464,21 @@ joblib.dump(
     "manual_ensemble_model.pkl"
 )
 
-joblib.dump(
-    best_threshold,
-    "manual_best_threshold.pkl"
-)
+thresholds = {
 
+    "buy_threshold": best_buy,
+
+    "sell_threshold": best_sell
+
+}
+
+joblib.dump(
+
+    thresholds,
+
+    "manual_thresholds.pkl"
+
+)
 print("Models Saved")
 
 # ==========================================
