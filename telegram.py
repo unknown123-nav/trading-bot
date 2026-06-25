@@ -10,7 +10,7 @@ from db import (
 
 from config import AUTO_CHAT_ID, MANUAL_CHAT_ID
 
-BOT_TOKEN = "8626450626:AAExgPikQRBaL3HnE98v58ZrmsqjrfWr99c"
+BOT_TOKEN = "8626450626:AAGooyT7nO1kLxdOe4KbzV20JqJye7JVcio"
 LAST_UPDATE_ID = None
 
 
@@ -38,12 +38,17 @@ def check_replies():
     global LAST_UPDATE_ID
 
     try:
+        print("Checking Telegram...")
+
         if LAST_UPDATE_ID:
             url = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates?offset={LAST_UPDATE_ID + 1}"
         else:
             url = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates"
 
         response = requests.get(url, timeout=10)
+        print("Status:", response.status_code)
+        print("Response:", response.text)
+
         data = response.json()
 
         if not data.get("ok"):
