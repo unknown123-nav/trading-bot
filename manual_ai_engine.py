@@ -67,11 +67,6 @@ print(
     f"SELL Threshold : {SELL_THRESHOLD}"
 )
 
-# ==========================================
-# FEATURES
-# MUST MATCH WEEKLY RETRAINER
-# ==========================================
-
 FEATURES = [
 
     "EMA20",
@@ -88,35 +83,26 @@ FEATURES = [
     "CHANNEL_POSITION",
 
     "SLOPE_SIGNAL",
-
     "ACTIVE_PASSIVE",
 
-    "power_score",
-
-    "financial_strength",
+    "POWER_SCORE",
+    "FINANCIAL_STRENGTH",
 
     "pair",
-
     "timeframe",
 
-    "market_state",
-
-    "frequency_type",
+    "MARKET_STATE",
+    "FREQUENCY_TYPE",
 
     "CANDLE_PATTERN",
 
     "positive",
-
     "negative",
-
     "neutral",
 
     "news_strength",
-
     "dominant_sentiment"
-
 ]
-
 print(
     "Manual AI Ready"
 )
