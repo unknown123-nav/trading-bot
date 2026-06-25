@@ -49,7 +49,9 @@ def trading_loop():
     print(" Trading Engine Started")
 
     while True:
+        print("Loop running...")
         try:
+            print("Importing bot_engine...")
             from bot_engine import run_bot
             print("bot_engine imported")
 
@@ -57,6 +59,8 @@ def trading_loop():
             run_bot()
 
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             print("Trading crashed:", e)
 
             # ✅ restart after crash
