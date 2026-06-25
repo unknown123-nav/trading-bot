@@ -106,6 +106,5 @@ def financial_strength(df):
 
     score = max(0, min(score, 100))
 
-    df["FINANCIAL_STRENGTH"] = score
-
+   df["financial_strength"] = score
     return df
