@@ -79,6 +79,6 @@ def frequency_type(df, timeframe):
     else:
         label = "LOW"
 
-    df["frequency_type"]  = label
+    df["FREQUENCY_TYPE"] = label
 
     return df
