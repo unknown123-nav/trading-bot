@@ -11,7 +11,7 @@ from ai_engine import predict_signal
 from historical_builder import save_training_signal
 from outcome_tracker import update_targets
 from manual_ai_engine import safe_predict_manual_trade
-from news_fetcher import get_news
+from news_fetcher import fetch_news
 
 print("bot_engine LOADED")
 processing = {}
@@ -328,12 +328,11 @@ def process_manual(symbol, timeframe, table_name):
 
     latest = float(df.iloc[0]['close'])
     news = get_news(symbol)
-
-ai_result = safe_predict_manual_trade(
+    ai_result = safe_predict_manual_trade(
     df=df,
     pair=symbol,
     timeframe=timeframe,
-    news=news
+    news = fetch_news(symbol)
 )
 
 if ai_result is None:
@@ -528,7 +527,7 @@ Time: {uk_time}
 # =========================================
 def run_bot():
 
-    print("💓 BOT RUNNING")
+    print("BOT RUNNING")
 
     while True:
         for symbol in SYMBOLS:
