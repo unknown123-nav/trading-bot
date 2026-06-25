@@ -22,7 +22,8 @@ cat_model = joblib.load("manual_catboost.pkl")
 xgb_model = joblib.load("manual_xgboost.pkl")
 lgbm_model = joblib.load("manual_lgbm.pkl")
 threshold = joblib.load("ensemble_threshold.pkl")
-
+BUY_THRESHOLD = thresholds["buy_threshold"]
+SELL_THRESHOLD = thresholds["sell_threshold"]
 print("Manual Models Loaded")
 
 # ==========================================
