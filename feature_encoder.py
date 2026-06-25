@@ -1,6 +1,7 @@
+import pandas as pd
+
 # ==========================================
-# feature_encoder.py
-# Live encoding for Manual AI
+# FIXED ENCODERS
 # ==========================================
 
 PAIR_MAP = {
@@ -15,54 +16,86 @@ TIMEFRAME_MAP = {
 }
 
 MARKET_STATE_MAP = {
-    "TRENDING": 0,
+    "RANGING": 0,
     "NORMAL": 1,
-    "VOLATILE": 2,
-    "RANGING": 3,
-    "SIDEWAYS": 4
+    "TRENDING": 2,
+    "BREAKOUT": 3,
+    "REVERSAL": 4,
+    "VOLATILE": 5
 }
 
 CANDLE_PATTERN_MAP = {
-    "Bullish Candle": 0,
-    "Bearish Candle": 1,
-    "Bullish Engulfing": 2,
-    "Bearish Engulfing": 3,
-    "Doji": 4,
-    "Flat": 5
+    "Doji": 0,
+    "Bullish Candle": 1,
+    "Bearish Candle": 2,
+    "Bullish Engulfing": 3,
+    "Bearish Engulfing": 4,
+    "Hammer": 5,
+    "Shooting Star": 6,
+    "Flat": 7
 }
 
-FREQUENCY_TYPE_MAP = {
+FREQUENCY_MAP = {
     "LOW": 0,
     "MEDIUM": 1,
     "HIGH": 2
 }
 
 SENTIMENT_MAP = {
-    "POSITIVE": 0,
-    "NEGATIVE": 1,
-    "NEUTRAL": 2
+    "NEGATIVE": 0,
+    "NEUTRAL": 1,
+    "POSITIVE": 2
 }
 
+# ==========================================
+# ENCODE
+# ==========================================
 
-def encode_pair(pair):
-    return PAIR_MAP.get(pair, 0)
+def encode_features(df):
 
+    df = df.copy()
 
-def encode_timeframe(timeframe):
-    return TIMEFRAME_MAP.get(timeframe, 0)
+    df["pair"] = (
+        df["pair"]
+        .map(PAIR_MAP)
+        .fillna(-1)
+        .astype(int)
+    )
 
+    df["timeframe"] = (
+        df["timeframe"]
+        .map(TIMEFRAME_MAP)
+        .fillna(-1)
+        .astype(int)
+    )
 
-def encode_market_state(state):
-    return MARKET_STATE_MAP.get(state, 1)
+    df["MARKET_STATE"] = (
+        df["MARKET_STATE"]
+        .map(MARKET_STATE_MAP)
+        .fillna(-1)
+        .astype(int)
+    )
 
+    df["CANDLE_PATTERN"] = (
+        df["CANDLE_PATTERN"]
+        .map(CANDLE_PATTERN_MAP)
+        .fillna(-1)
+        .astype(int)
+    )
 
-def encode_candle(pattern):
-    return CANDLE_PATTERN_MAP.get(pattern, 0)
+    df["FREQUENCY_TYPE"] = (
+        df["FREQUENCY_TYPE"]
+        .map(FREQUENCY_MAP)
+        .fillna(-1)
+        .astype(int)
+    )
 
+    df["dominant_sentiment"] = (
+        df["dominant_sentiment"]
+        .str.upper()
+        .map(SENTIMENT_MAP)
+        .fillna(1)
+        .astype(int)
+    )
 
-def encode_frequency(freq):
-    return FREQUENCY_TYPE_MAP.get(freq, 1)
-
-
-def encode_sentiment(sentiment):
-    return SENTIMENT_MAP.get(sentiment.upper(), 2)
+    return df
