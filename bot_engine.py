@@ -314,9 +314,7 @@ SL: £{round(sl_gbp, 2)}
 
     finally:
         processing[key] = False
-# =========================================
-#  MANUAL (NO TRADES)
-# =========================================
+
 # =========================================
 # MANUAL AI (30m / 1H)
 # =========================================
@@ -526,7 +524,7 @@ Time : {uk_time}
 
             financial_strength=financial_strength,
 
-            signal_class="INTERESTING",
+            signal_class=ai_result["signal"],
 
             market_state=market_state,
 
