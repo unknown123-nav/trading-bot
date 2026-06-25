@@ -6,7 +6,7 @@ import time
 # ASSISTANT BOT TOKEN
 # =====================================
 
-telegram.BOT_TOKEN = "8626450626:AAExgPikQRBaL3HnE98v58ZrmsqjrfWr99c"
+telegram.BOT_TOKEN = "8626450626:AAGooyT7nO1kLxdOe4KbzV20JqJye7JVcio"
 
 print("🤖 Assistant Bot Started")
 
