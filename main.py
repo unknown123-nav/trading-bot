@@ -28,7 +28,7 @@ def assistant_loop():
 
         time.sleep(2)
 
-ddef weekly_loop():
+def weekly_loop():
 
     print("WEEKLY RETRAINER STARTED")
 
