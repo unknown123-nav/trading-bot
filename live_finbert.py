@@ -1,39 +1,25 @@
 print("LIVE_FINBERT FILE START")
+
 import torch
-from transformers import (
-    AutoTokenizer,
-    AutoModelForSequenceClassification
-)
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
-print("1 - Starting FinBERT import")
+MODEL = "./finbert"
 
-print("2 - Torch imported")
-
-print("3 - Transformers imported")
-
-MODEL = "ProsusAI/finbert"
-
-tokenizer = AutoTokenizer.from_pretrained(MODEL)
-model = AutoModelForSequenceClassification.from_pretrained(MODEL)
-print("4 - Loading tokenizer...")
+print("Loading tokenizer...")
 
 tokenizer = AutoTokenizer.from_pretrained(MODEL)
 
-print("5 - Tokenizer loaded")
+print("Tokenizer loaded")
 
-print("6 - Loading model...")
+print("Loading model...")
 
 model = AutoModelForSequenceClassification.from_pretrained(MODEL)
 
-print("7 - Model loaded")
+print("Model loaded")
 
 model.eval()
 
-device = (
-    "cuda"
-    if torch.cuda.is_available()
-    else "cpu"
-)
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 model.to(device)
 
@@ -43,8 +29,7 @@ LABELS = [
     "neutral"
 ]
 
-print("8 - FinBERT READY")
-
+print("FinBERT READY")
 # ==========================================
 # LIVE FINBERT
 # ==========================================
