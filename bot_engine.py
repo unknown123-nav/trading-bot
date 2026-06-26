@@ -1,26 +1,25 @@
-print("BOT_ENGINE FILE STARTING")
-
+print("1")
 import time
-print("time")
 
+print("2")
 import requests
-print("requests")
 
+print("3")
 from datetime import datetime
-print("datetime")
 
+print("4")
 import pytz
-print("pytz")
 
+print("5")
 from trend_classifier import classify_market
-print("trend_classifier")
 
+print("6")
 from volatility_indicators import *
-print("volatility_indicators")
 
+print("7")
 from market import get_data
-print("market")
 
+print("8")
 from db import (
     create_paper_trade,
     get_open_trades,
@@ -28,26 +27,26 @@ from db import (
     save_signal,
     save_telegram_log
 )
-print("db")
 
+print("9")
 from config import SYMBOLS
-print("config")
 
+print("10")
 from ai_engine import predict_signal
-print("ai_engine")
 
+print("11")
 from historical_builder import save_training_signal
-print("historical_builder")
 
+print("12")
 from outcome_tracker import update_targets
-print("outcome_tracker")
 
+print("13")
 from manual_ai_engine import safe_predict_manual_trade
-print("manual_ai_engine")
 
+print("14")
 from news_fetcher import fetch_news
-print("news_fetcher done importing")
 
+print("BOT ENGINE IMPORT COMPLETE")
 processing = {}
 recent_symbols = {}
 last_signal_time = {}
