@@ -13,9 +13,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Download FinBERT once while building the image
 RUN python -c "from transformers import AutoTokenizer, AutoModelForSequenceClassification; \
-AutoTokenizer.from_pretrained('ProsusAI/finbert'); \
-AutoModelForSequenceClassification.from_pretrained('ProsusAI/finbert')"
-
+tokenizer = AutoTokenizer.from_pretrained('ProsusAI/finbert'); \
+model = AutoModelForSequenceClassification.from_pretrained('ProsusAI/finbert'); \
+tokenizer.save_pretrained('/app/finbert'); \
+model.save_pretrained('/app/finbert')"
 COPY . .
 
 CMD ["python", "main.py"]
