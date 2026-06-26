@@ -51,8 +51,13 @@ def trading_loop():
     while True:
         print("Loop running...")
         try:
-            print("Importing bot_engine...")
-            from bot_engine import run_bot
+            import importlib
+            print("About to import bot_engine")
+            module = importlib.import_module("bot_engine")
+            print("bot_engine module imported")
+            run_bot = module.run_bot
+            print("About to run run_bot()")
+            run_bot()
             print("bot_engine imported")
 
             print("BOT STARTING...")
