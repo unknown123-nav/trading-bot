@@ -11,7 +11,10 @@ print("2 - Torch imported")
 
 print("3 - Transformers imported")
 
-MODEL = "ProsusAI/finbert"
+MODEL = "finbert"
+
+tokenizer = AutoTokenizer.from_pretrained(MODEL)
+model = AutoModelForSequenceClassification.from_pretrained(MODEL)
 
 print("4 - Loading tokenizer...")
 
