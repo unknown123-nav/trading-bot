@@ -1,16 +1,36 @@
-import os
+print("MANUAL_AI_ENGINE START")
+print("1")
 import joblib
-import numpy as np
+
+print("2")
 import pandas as pd
 
+print("3")
+import numpy as np
+
+print("4")
 from power_score import calculate_power_score
+
+print("5")
 from financial_analysis import financial_strength
+
+print("6")
 from flat_classifier import market_state
+
+print("7")
 from middle_frequency_classifier import frequency_type
+
+print("8")
 from signal_detector import interesting_signal
 
+print("9")
 from live_finbert import finbert_scores
+
+print("10")
 from feature_encoder import encode_features
+
+print("MANUAL_AI_ENGINE IMPORT COMPLETE")
+
 
 print("========================================")
 print("MANUAL AI ENGINE LOADING...")
