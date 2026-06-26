@@ -1,3 +1,4 @@
+print("LIVE_FINBERT FILE START")
 import torch
 from transformers import (
     AutoTokenizer,
