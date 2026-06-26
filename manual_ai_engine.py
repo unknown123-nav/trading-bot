@@ -58,15 +58,12 @@ print("Manual Models Loaded")
 # LOAD ENSEMBLE WEIGHTS
 # ==========================================
 
-weights = joblib.load(
-    "manual_ensemble_model.pkl"
-)
+CAT_WEIGHT = 0.40
+XGB_WEIGHT = 0.35
+LGBM_WEIGHT = 0.25
 
-CAT_WEIGHT = weights["catboost_weight"]
-XGB_WEIGHT = weights["xgboost_weight"]
-LGBM_WEIGHT = weights["lightgbm_weight"]
-
-print("Dynamic Ensemble Loaded")
+BUY_THRESHOLD = 0.40
+SELL_THRESHOLD = 0.40
 
 # ==========================================
 # LOAD BUY / SELL THRESHOLDS
