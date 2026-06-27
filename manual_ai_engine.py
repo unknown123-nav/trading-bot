@@ -94,9 +94,8 @@ FEATURES = [
     "CHANNEL_POSITION",
 
     "SLOPE_SIGNAL",
-    "ACTIVE_PASSIVE",
-
     "POWER_SCORE",
+    "ACTIVE_PASSIVE",
     "FINANCIAL_STRENGTH",
 
     "pair",
