@@ -200,15 +200,7 @@ def predict_manual_trade(
         news
     )
 
-    latest["positive"] = sentiment["positive"]
 
-    latest["negative"] = sentiment["negative"]
-
-    latest["neutral"] = sentiment["neutral"]
-
-    latest["news_strength"] = sentiment["strength"]
-
-    latest["dominant_sentiment"] = sentiment["dominant"]
 
     # ======================================
     # SAFETY
