@@ -100,6 +100,6 @@ def calculate_power_score(df):
 
     score = max(0, min(score, 100))
 
-    df["power_score"] = score
+    df["POWER_SCORE"] = score
 
     return df
