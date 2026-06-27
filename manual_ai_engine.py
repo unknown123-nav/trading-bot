@@ -69,12 +69,6 @@ SELL_THRESHOLD = 0.40
 # LOAD BUY / SELL THRESHOLDS
 # ==========================================
 
-thresholds = joblib.load(
-    "manual_thresholds.pkl"
-)
-
-BUY_THRESHOLD = thresholds["buy_threshold"]
-SELL_THRESHOLD = thresholds["sell_threshold"]
 
 print(
     f"BUY Threshold : {BUY_THRESHOLD}"
