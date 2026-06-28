@@ -379,7 +379,7 @@ def process_manual(symbol, timeframe, table_name):
         key = f"{symbol}_{timeframe}_MANUAL"
 
         if key in last_signal_time:
-            if time.time() - last_signal_time[key] < 300:
+            if time.time() - last_signal_time[key] < 1800:
                 return
 
         # ==============================
