@@ -41,6 +41,45 @@ def save_training_signal(
 
     try:
 
+        # ======================================
+        # Convert NumPy/Pandas values
+        # ======================================
+
+        pair = str(pair)
+        timeframe = str(timeframe)
+
+        price = float(price)
+        price_gbp = float(price_gbp)
+
+        ema20 = float(ema20)
+        ema50 = float(ema50)
+        rsi = float(rsi)
+        atr = float(atr)
+        natr = float(natr)
+
+        bb_width = float(bb_width)
+        chaikin_vol = float(chaikin_vol)
+        vqi = float(vqi)
+
+        trend_strength = float(trend_strength)
+        channel_position = float(channel_position)
+
+        direction = str(direction)
+
+        confidence = float(confidence)
+
+        power_score = float(power_score)
+
+        financial_strength = float(financial_strength)
+
+        signal_class = str(signal_class)
+
+        market_state = int(market_state)
+
+        frequency_type = int(frequency_type)
+
+        candle_type = str(candle_type)
+
         conn = mysql.connector.connect(**DB_CONFIG)
         cursor = conn.cursor()
 
@@ -115,47 +154,48 @@ def save_training_signal(
         )
         """
 
+        values = (
+
+            time,
+            uk_time,
+
+            pair,
+            timeframe,
+
+            price,
+            price_gbp,
+
+            ema20,
+            ema50,
+            rsi,
+            atr,
+            natr,
+            bb_width,
+            chaikin_vol,
+            vqi,
+            trend_strength,
+            channel_position,
+
+            direction,
+            confidence,
+
+            power_score,
+
+            financial_strength,
+
+            signal_class,
+
+            market_state,
+
+            frequency_type,
+
+            candle_type
+
+        )
+
         print("Executing INSERT...")
 
-        cursor.execute(
-            query,
-            (
-                time,
-                uk_time,
-
-                pair,
-                timeframe,
-
-                price,
-                price_gbp,
-
-                ema20,
-                ema50,
-                rsi,
-                atr,
-                natr,
-                bb_width,
-                chaikin_vol,
-                vqi,
-                trend_strength,
-                channel_position,
-
-                direction,
-                confidence,
-
-                power_score,
-
-                financial_strength,
-
-                signal_class,
-
-                market_state,
-
-                frequency_type,
-
-                candle_type
-            )
-        )
+        cursor.execute(query, values)
 
         print("INSERT OK")
 
