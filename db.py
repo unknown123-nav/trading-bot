@@ -53,13 +53,15 @@ def get_latest_signals(source=None):
 def save_signal(table, pair, direction, confidence, entry, pattern, volatility, trade_source):
 
     if table not in ALLOWED_SIGNAL_TABLES:
-        print(f"❌ Invalid table: {table}")
+        print(f" Invalid table: {table}")
         return
 
     conn = get_connection()
     cursor = conn.cursor()
 
     try:
+        print(f"Saving signal into {table}")
+
         cursor.execute(f"""
             INSERT INTO {table} (
                 pair,
@@ -83,11 +85,13 @@ def save_signal(table, pair, direction, confidence, entry, pattern, volatility, 
             trade_source
         ))
 
+        print("INSERT successful")
         conn.commit()
         print(f" Saved signal → {table} | {pair}")
 
     except Exception as e:
-        print(" Signal save error:", e)
+        import traceback
+        traceback.print_exc()
 
     finally:
         cursor.close()
@@ -169,7 +173,7 @@ def get_open_trades():
         return cursor.fetchall()
 
     except Exception as e:
-        print("❌ Open trade fetch error:", e)
+        print(" Open trade fetch error:", e)
         return []
 
     finally:
@@ -275,7 +279,7 @@ def save_conversation(message_id, pair, user_msg, bot_msg):
         conn.commit()
 
     except Exception as e:
-        print("❌ Conversation save error:", e)
+        print(" Conversation save error:", e)
 
     finally:
         cursor.close()
