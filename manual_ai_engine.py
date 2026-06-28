@@ -254,7 +254,15 @@ def predict_manual_trade(
 
         )
 
+    print("\n================ FEATURES IN DATAFRAME ================")
+    print(latest.columns.tolist())
+    print("\n================ MODEL FEATURES ================")
+    print(FEATURES)
+    print("\n================ X COLUMNS ================")
     X = latest[FEATURES]
+    print(X.columns.tolist())
+    print("\n================ FIRST ROW ================")
+    print(X.iloc[0])
 
     # ======================================
     # CATBOOST
