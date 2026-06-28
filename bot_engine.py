@@ -473,7 +473,7 @@ def process_manual(symbol, timeframe, table_name):
 
         volatility = float(df.iloc[0]["NATR"])
 
-        uk_time=get_uk_time().strftime("%Y-%m-%d %H:%M:%S"),
+        uk_time=get_uk_time(),
 
         last_signal_time[key] = time.time()
 
