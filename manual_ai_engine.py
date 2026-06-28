@@ -528,7 +528,7 @@ def predict_manual_trade(
 
             latest.iloc[0][
 
-                "positive"
+                "overall_positive"
 
             ]
 
@@ -538,7 +538,7 @@ def predict_manual_trade(
 
             latest.iloc[0][
 
-                "negative"
+                "overall_negative"
 
             ]
 
@@ -548,7 +548,7 @@ def predict_manual_trade(
 
             latest.iloc[0][
 
-                "neutral"
+                "overall_neutral"
 
             ]
 
