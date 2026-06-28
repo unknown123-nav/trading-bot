@@ -415,6 +415,32 @@ def process_manual(symbol, timeframe, table_name):
 
         if ai_result["signal"] == "NO TRADE":
             print(f"MANUAL AI -> NO TRADE | {symbol} {timeframe}")
+            save_training_signal(
+                time=df.iloc[0]["time"],
+                uk_time=get_uk_time(),
+                pair=symbol,
+                timeframe=timeframe,
+                price=latest,
+                price_gbp=gbp_price,
+                ema20=float(df.iloc[0]["EMA20"]),
+                ema50=float(df.iloc[0]["EMA50"]),
+                rsi=float(df.iloc[0]["RSI"]),
+                atr=float(df.iloc[0]["ATR"]),
+                natr=float(df.iloc[0]["NATR"]),
+                bb_width=float(df.iloc[0]["BB_WIDTH"]),
+                chaikin_vol=float(df.iloc[0]["CHAIKIN_VOL"]),
+                vqi=float(df.iloc[0]["VQI"]),
+                trend_strength=float(df.iloc[0]["TREND_STRENGTH"]),
+                channel_position=float(df.iloc[0]["CHANNEL_POSITION"]),
+                direction="NONE",
+                confidence=ai_result["confidence"],
+                power_score=ai_result["power_score"],
+                financial_strength=ai_result["financial_strength"],
+                signal_class="NO TRADE",
+                market_state=ai_result["market_state"],
+                frequency_type=ai_result["frequency_type"],
+                candle_type=ai_result["candle_type"]
+            )
             return
 
         # ==============================
@@ -447,7 +473,7 @@ def process_manual(symbol, timeframe, table_name):
 
         volatility = float(df.iloc[0]["NATR"])
 
-        uk_time = get_uk_time().strftime("%H:%M:%S")
+        uk_time=get_uk_time().strftime("%Y-%m-%d %H:%M:%S"),
 
         last_signal_time[key] = time.time()
 
