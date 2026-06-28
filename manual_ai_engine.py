@@ -62,8 +62,8 @@ CAT_WEIGHT = 0.40
 XGB_WEIGHT = 0.35
 LGBM_WEIGHT = 0.25
 
-BUY_THRESHOLD = 0.40
-SELL_THRESHOLD = 0.40
+BUY_THRESHOLD = 0.80
+SELL_THRESHOLD = 0.25
 
 # ==========================================
 # LOAD BUY / SELL THRESHOLDS
@@ -394,18 +394,14 @@ def predict_manual_trade(
     # FINAL SIGNAL
     # ======================================
 
-    if probability >= BUY_THRESHOLD:
-
-        signal = "BUY"
-
-    elif probability <= SELL_THRESHOLD:
-
-        signal = "SELL"
-
-    else:
-
+    if confidence < 80:
         signal = "NO TRADE"
-
+    elif probability >= BUY_THRESHOLD:
+        signal = "BUY"
+    elif probability <= SELL_THRESHOLD:
+        signal = "SELL"
+    else:
+        signal = "NO TRADE"
     # ======================================
     # SIGNAL STRENGTH
     # ======================================
