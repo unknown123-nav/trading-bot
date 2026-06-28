@@ -566,6 +566,7 @@ Time : {uk_time}
             candle_type=candle_type
 
         )
+        print("Returned from save_training_signal()")
 
         print(
             f"MANUAL AI SIGNAL SAVED -> {symbol} {timeframe}"
