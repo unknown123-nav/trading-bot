@@ -80,38 +80,55 @@ print(
 
 FEATURES = [
 
-    "EMA20",
-    "EMA50",
-    "RSI",
-    "ATR",
-    "NATR",
+"EMA20",
+"EMA50",
+"RSI",
+"ATR",
+"NATR",
 
-    "BB_WIDTH",
-    "CHAIKIN_VOL",
-    "VQI",
+"BB_WIDTH",
+"CHAIKIN_VOL",
+"VQI",
 
-    "TREND_STRENGTH",
-    "CHANNEL_POSITION",
+"TREND_STRENGTH",
+"CHANNEL_POSITION",
 
-    "SLOPE_SIGNAL",
-    "POWER_SCORE",
-    "ACTIVE_PASSIVE",
-    "FINANCIAL_STRENGTH",
+"SLOPE_SIGNAL",
+"POWER_SCORE",
 
-    "pair",
-    "timeframe",
+"ACTIVE_PASSIVE",
 
-    "MARKET_STATE",
-    "FREQUENCY_TYPE",
+"FINANCIAL_STRENGTH",
 
-    "CANDLE_PATTERN",
+"pair",
+"timeframe",
 
-    "positive",
-    "negative",
-    "neutral",
+"MARKET_STATE",
 
-    "news_strength",
-    "dominant_sentiment"
+"CANDLE_PATTERN",
+
+"FREQUENCY_TYPE",
+
+"h1_positive",
+"h1_negative",
+"h1_neutral",
+
+"h2_positive",
+"h2_negative",
+"h2_neutral",
+
+"h3_positive",
+"h3_negative",
+"h3_neutral",
+
+"overall_positive",
+"overall_negative",
+"overall_neutral",
+
+"news_strength",
+
+"dominant_sentiment"
+
 ]
 print(
     "Manual AI Ready"
@@ -196,10 +213,21 @@ def predict_manual_trade(
     # FINBERT
     # ======================================
 
-    sentiment = finbert_scores(
-        news
-    )
-
+    sentiment = finbert_scores(news)
+    latest["h1_positive"] = sentiment["positive"]
+    latest["h1_negative"] = sentiment["negative"]
+    latest["h1_neutral"] = sentiment["neutral"]
+    latest["h2_positive"] = sentiment["positive"]
+    latest["h2_negative"] = sentiment["negative"]
+    latest["h2_neutral"] = sentiment["neutral"]
+    latest["h3_positive"] = sentiment["positive"]
+    latest["h3_negative"] = sentiment["negative"]
+    latest["h3_neutral"] = sentiment["neutral"]
+    latest["overall_positive"] = sentiment["positive"]
+    latest["overall_negative"] = sentiment["negative"]
+    latest["overall_neutral"] = sentiment["neutral"]
+    latest["news_strength"] = sentiment["strength"]
+    latest["dominant_sentiment"] = sentiment["dominant"]
 
 
     # ======================================
