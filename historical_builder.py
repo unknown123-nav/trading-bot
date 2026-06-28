@@ -1,7 +1,7 @@
 import mysql.connector
 from config import DB_CONFIG
 from news_fetcher import update_news
-
+import traceback
 def save_training_signal(
         time,
         uk_time,
@@ -145,11 +145,9 @@ def save_training_signal(
         )
 
     except Exception as e:
-
-        print(
-            "Training save error:",
-            e
-        )
+            print("========== TRAINING SAVE ERROR ==========")
+            traceback.print_exc()
+            print("=========================================")
 
     finally:
 
