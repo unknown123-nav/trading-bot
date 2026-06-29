@@ -2,8 +2,7 @@ import requests
 import mysql.connector
 from config import DB_CONFIG
 
-API_KEY = "R2J9I9NZC4TK0SRK"
-
+API_KEY = "9DXROO3ZY8TI1YOX"
 
 def fetch_news(symbol):
 
@@ -28,6 +27,9 @@ def fetch_news(symbol):
 
         data = r.json()
 
+        print("========== NEWS RESPONSE ==========")
+        print(data)
+        print("===================================")
         if "feed" not in data:
             return []
 
