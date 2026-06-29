@@ -439,7 +439,30 @@ def predict_manual_trade(
         ]
 
     )
-    
+    momentum_score = 0
+    last5 = df.tail(5)
+
+    if last5["close"].is_monotonic_increasing:
+        momentum_score += 20
+
+    elif last5["close"].is_monotonic_decreasing:
+        momentum_score += 20
+        
+    if latest.iloc[0]["EMA20"] > latest.iloc[0]["EMA50"]:
+        momentum_score += 15
+    else:
+        momentum_score += 10
+        
+    if 45 <= latest.iloc[0]["RSI"] <= 70:
+        momentum_score += 15
+        
+    if latest.iloc[0]["TREND_STRENGTH"] > 1:
+        momentum_score += 25
+        
+    if latest.iloc[0]["VQI"] > 0.70:
+        momentum_score += 25
+        
+    momentum_score = min(momentum_score, 100)
     roi_score = 0
     if confidence >= 90:
         roi_score += 25
@@ -460,7 +483,11 @@ def predict_manual_trade(
     if latest.iloc[0]["TREND_STRENGTH"] >= 1:
         roi_score += 15
         
-    roi_score = min(roi_score, 100)
+    roi_score = round(
+        roi_score * 0.70 +
+        momentum_score * 0.30,
+        2
+    )
     # ======================================
     # OUTPUT
     # ======================================
@@ -479,6 +506,7 @@ def predict_manual_trade(
 
         "sell_threshold": SELL_THRESHOLD,
         "roi_score": roi_score,
+        "momentum_score": momentum_score,
 
         "catboost": round(
 
@@ -635,6 +663,8 @@ def predict_manual_trade(
     print("Neutral News        :", round(result["neutral_news"],4))
     print("News Strength       :", round(result["news_strength"],4))
     print("Sentiment           :", result["dominant_sentiment"])
+    print("Momentum Score     :", result["momentum_score"])
+    print("ROI Score          :", result["roi_score"])
 
     print()
 
