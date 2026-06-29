@@ -421,6 +421,11 @@ def process_manual(symbol, timeframe, table_name):
             news=news
         )
 
+        if ai_result["roi_score"] < 80:
+            print(
+                f"ROI rejected ({ai_result['roi_score']})"
+            )
+            return
         if ai_result is None:
             return
 
