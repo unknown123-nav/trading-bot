@@ -378,6 +378,10 @@ def process_manual(symbol, timeframe, table_name):
                     f"{symbol} 30m -> No breakout"
                 )
                 return
+                breakout_time = get_uk_time()
+                print(
+                    f"BREAKOUT AT {breakout_time}"
+                )
             print(
                 f"{symbol} 30m -> BREAKOUT DETECTED"
             )
@@ -388,6 +392,10 @@ def process_manual(symbol, timeframe, table_name):
                     f"{symbol} 1H -> No breakout"
                 )
                 return
+                breakout_time = get_uk_time()
+                print(
+                    f"BREAKOUT AT {breakout_time}"
+                )
             print(
                 f"{symbol} 1H -> BREAKOUT DETECTED"
             )
