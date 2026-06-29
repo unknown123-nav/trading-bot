@@ -4,7 +4,7 @@ from config import DB_CONFIG
 
 API_KEY = "9DXROO3ZY8TI1YOX"
 
-def fetch_news(symbol):
+def fetch_news(symbol, breakout_time=None):
 
     try:
 
@@ -26,7 +26,29 @@ def fetch_news(symbol):
         r = requests.get(url, timeout=10)
 
         data = r.json()
+        from datetime import datetime, timedelta
 
+        filtered_feed = []
+        feed = data.get("feed", [])
+        if breakout_time is None:
+            return feed[:3]
+            
+        for article in feed:
+            try:
+                published = datetime.strptime(
+                    article["time_published"],
+                    "%Y%m%dT%H%M%S"
+                )
+                published = published.replace(tzinfo=breakout_time.tzinfo)
+                minutes = (
+                    breakout_time - published
+                ).total_seconds() / 60
+                if 0 <= minutes <= 10:
+                    article["minutes_before"] = round(minutes,2)
+                    filtered_feed.append(article)
+            except Exception:
+                pass
+        return filtered_feed
         print("========== NEWS RESPONSE ==========")
         print(data)
         print("===================================")
