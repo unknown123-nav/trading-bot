@@ -422,7 +422,10 @@ def process_manual(symbol, timeframe, table_name):
         # NEWS
         # ==============================
 
-        articles = fetch_news(symbol)
+        articles = fetch_news(
+            symbol,
+            breakout_time
+        )
 
         if articles:
 
