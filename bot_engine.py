@@ -48,8 +48,19 @@ from news_fetcher import fetch_news
 
 print("BOT ENGINE IMPORT COMPLETE")
 processing = {}
+
 recent_symbols = {}
+
 last_signal_time = {}
+
+roi_state = {}
+
+roi_last_signal = {}
+
+roi_last_price = {}
+
+roi_enter_time = {}
+roi_confirmation = {}
 
 TELEGRAM_TOKEN = "8626450626:AAGooyT7nO1kLxdOe4KbzV20JqJye7JVcio"
 AUTO_CHAT_ID = "-5211298112"
@@ -413,6 +424,36 @@ def process_manual(symbol, timeframe, table_name):
         if ai_result is None:
             return
 
+        roi_key = f"{symbol}_{timeframe}"
+        if roi_state.get(roi_key, False):
+            exit_message = f"""
+            ROI EXIT
+            Pair : {symbol}
+            Timeframe : {timeframe}
+            The market is no longer inside the region of interest.
+            """
+            send_message(
+                MANUAL_CHAT_ID,
+                exit_message
+    
+            )
+            save_telegram_log(
+        
+                exit_message,
+        
+                "MANUAL_CHANNEL",
+        
+                "SENT"
+    
+            )
+            roi_state[roi_key] = False
+            roi_confirmation[roi_key] = 0
+            roi_last_signal.pop(roi_key, None)
+            roi_last_price.pop(roi_key, None)
+            roi_enter_time.pop(roi_key, None)
+            print(f"ROI ENDED -> {symbol} {timeframe}")
+
+        
         if ai_result["signal"] == "NO TRADE":
             print(f"MANUAL AI -> NO TRADE | {symbol} {timeframe}")
             save_training_signal(
@@ -459,6 +500,11 @@ def process_manual(symbol, timeframe, table_name):
             else "SHORT"
         )
 
+        roi_key = f"{symbol}_{timeframe}"
+        current_signal = ai_result["signal"]
+        previous_signal = roi_last_signal.get(roi_key)
+        inside_roi = roi_state.get(roi_key, False)
+        confirmation = roi_confirmation.get(roi_key, 0)
         confidence = ai_result["confidence"]
 
         candle_type = ai_result["candle_type"]
@@ -511,16 +557,67 @@ Timeframe : {timeframe}
 Time : {uk_time}
 """
 
-        send_message(
-            MANUAL_CHAT_ID,
-            message
-        )
+        if not inside_roi:
+            if current_signal == previous_signal:
+                confirmation += 1
 
-        save_telegram_log(
-            message,
-            "MANUAL_CHANNEL",
-            "SENT"
-        )
+             else:
+                 confirmation = 1
+                
+             roi_confirmation[roi_key] = confirmation
+             print(
+                 f"{symbol} {timeframe} ROI Confirmation {confirmation}/3"
+             )
+            if confirmation >= 3:
+                roi_score = 0
+                
+            if trend_strength > 0.80:
+                roi_score += 20
+                
+            if power_score >= 60:
+                roi_score += 20
+                
+            if financial_strength >= 40:
+                roi_score += 20
+                
+            if ai_result["interesting_signal"]:
+                roi_score += 20
+                
+            if confidence >= 90:
+                roi_score += 20
+                
+            print(f"ROI Score : {roi_score}")
+            
+            if roi_score < 80:
+                print(
+                    f"ROI rejected -> Score {roi_score}"
+                )
+                roi_confirmation[roi_key] = 0
+                return
+                send_message(
+                
+                    MANUAL_CHAT_ID,
+                
+                    message
+            
+                )
+                save_telegram_log(
+                
+                    message,
+                
+                    "MANUAL_CHANNEL",
+                
+                    "SENT"
+            
+                )
+            roi_state[roi_key] = True
+            roi_last_signal[roi_key] = current_signal
+            roi_last_price[roi_key] = latest
+            roi_enter_time[roi_key] = time.time()
+            roi_confirmation[roi_key] = 0
+            print(f"ROI STARTED -> {symbol} {timeframe}")
+        else:
+            print(f"ROI ACTIVE -> {symbol} {timeframe} (No Telegram)")
 
         # ==============================
         # SAVE SIGNAL
