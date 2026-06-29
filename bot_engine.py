@@ -44,6 +44,7 @@ print("13")
 from manual_ai_engine import safe_predict_manual_trade
 
 print("14")
+from breakout_detector import detect_breakout
 from news_fetcher import fetch_news
 
 print("BOT ENGINE IMPORT COMPLETE")
@@ -369,11 +370,27 @@ def process_manual(symbol, timeframe, table_name):
 
     try:
 
-        # ==============================
-        # MARKET DATA
-        # ==============================
-
         df = get_data(symbol, timeframe, 40)
+
+        if timeframe == "30m":
+            if not detect_breakout(df):
+                print(
+                    f"{symbol} 30m -> No breakout"
+                )
+                return
+            print(
+                f"{symbol} 30m -> BREAKOUT DETECTED"
+            )
+
+        if timeframe == "1H":
+            if not detect_breakout(df):
+                print(
+                    f"{symbol} 1H -> No breakout"
+                )
+                return
+            print(
+                f"{symbol} 1H -> BREAKOUT DETECTED"
+            )
 
         if df.empty:
             return
