@@ -439,7 +439,28 @@ def predict_manual_trade(
         ]
 
     )
-
+    
+    roi_score = 0
+    if confidence >= 90:
+        roi_score += 25
+    elif confidence >= 80:
+        roi_score += 20
+    elif confidence >= 70:
+        roi_score += 10
+        
+    if latest.iloc[0]["POWER_SCORE"] >= 60:
+        roi_score += 20
+        
+    if latest.iloc[0]["FINANCIAL_STRENGTH"] >= 40:
+        roi_score += 20
+        
+    if interesting:
+        roi_score += 20
+        
+    if latest.iloc[0]["TREND_STRENGTH"] >= 1:
+        roi_score += 15
+        
+    roi_score = min(roi_score, 100)
     # ======================================
     # OUTPUT
     # ======================================
@@ -457,6 +478,7 @@ def predict_manual_trade(
         "buy_threshold": BUY_THRESHOLD,
 
         "sell_threshold": SELL_THRESHOLD,
+        "roi_score": roi_score,
 
         "catboost": round(
 
@@ -559,12 +581,15 @@ def predict_manual_trade(
             ]
 
         ),
+        
 
         "dominant_sentiment": latest.iloc[0][
 
             "dominant_sentiment"
 
         ]
+
+        
 
     }
 
