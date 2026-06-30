@@ -46,6 +46,7 @@ from manual_ai_engine import safe_predict_manual_trade
 print("14")
 from breakout_detector import detect_breakout
 from news_fetcher import fetch_news
+from news_ranker import rank_trigger_news
 
 print("BOT ENGINE IMPORT COMPLETE")
 processing = {}
@@ -426,7 +427,16 @@ def process_manual(symbol, timeframe, table_name):
             symbol,
             breakout_time
         )
+        trigger_news = rank_trigger_news(
+            articles
+        )
 
+        if trigger_news:
+            print()
+            print("TRIGGER NEWS")
+            print(trigger_news["title"])
+            print(trigger_news["impact_score"])
+            print()
         if articles:
 
             news = {
