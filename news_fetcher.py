@@ -64,9 +64,9 @@ def fetch_news(symbol, breakout_time=None):
         return []
 
 
-def update_news(training_id, symbol):
+def update_news(training_id, symbol, breakout_time=None):
 
-    articles = fetch_news(symbol)
+    articles = fetch_news(symbol,breakout_time)
 
     headlines = []
     summaries = []
