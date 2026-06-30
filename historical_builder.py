@@ -203,12 +203,12 @@ def save_training_signal(
 
         print("Updating news...")
 
-        update_news(
-            training_id,
-            pair,
-            uk_time
-        
-        )
+        if signal_class != "NO TRADE":
+                update_news(
+                        training_id,
+                        pair,
+                        uk_time
+                )
 
         print("NEWS UPDATED")
 
