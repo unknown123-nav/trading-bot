@@ -39,9 +39,18 @@ def fetch_news(symbol, breakout_time=None):
                     article["time_published"],
                     "%Y%m%dT%H%M%S"
                 )
-                published = published.replace(tzinfo=breakout_time.tzinfo)
+                published = published.replace(
+    
+                    tzinfo=None
+
+                )
+                breakout = breakout_time.replace(
+    
+                    tzinfo=None
+
+                )
                 minutes = (
-                    breakout_time - published
+                    breakout - published
                 ).total_seconds() / 60
                 if 0 <= minutes <= 10:
                     article["minutes_before"] = round(minutes,2)
@@ -49,13 +58,6 @@ def fetch_news(symbol, breakout_time=None):
             except Exception:
                 pass
         return filtered_feed
-        print("========== NEWS RESPONSE ==========")
-        print(data)
-        print("===================================")
-        if "feed" not in data:
-            return []
-
-        return data["feed"][:3]
 
     except Exception as e:
 
