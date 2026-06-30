@@ -41,10 +41,6 @@ def save_training_signal(
 
     try:
 
-        # ======================================
-        # Convert NumPy/Pandas values
-        # ======================================
-
         pair = str(pair)
         timeframe = str(timeframe)
 
@@ -209,7 +205,9 @@ def save_training_signal(
 
         update_news(
             training_id,
-            pair
+            pair,
+            uk_time
+        
         )
 
         print("NEWS UPDATED")
