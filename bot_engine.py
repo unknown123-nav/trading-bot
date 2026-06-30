@@ -497,7 +497,11 @@ def process_manual(symbol, timeframe, table_name):
             print(f"ROI ENDED -> {symbol} {timeframe}")
 
         
-        if ai_result["signal"] == "NO TRADE":
+        if (
+            ai_result["signal"] == "NO TRADE"
+            and
+            not ai_result["breakout_detected"]
+        ):
             print(f"MANUAL AI -> NO TRADE | {symbol} {timeframe}")
             save_training_signal(
                 time=df.iloc[0]["time"],
@@ -596,6 +600,10 @@ Frequency : {frequency_type}
 Candle : {candle_type}
 
 Timeframe : {timeframe}
+
+Breakout : {ai_result["breakout_detected"]}
+
+Price Move : {ai_result["price_move_percent"]}%
 
 Time : {uk_time}
 """
