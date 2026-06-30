@@ -439,6 +439,52 @@ def predict_manual_trade(
         ]
 
     )
+    last10 = df.tail(10)
+    flat_market = (
+        last10["ATR"].mean()
+        <
+        df["ATR"].mean() * 0.75
+    )
+
+    price_move_percent = abs(
+        (
+        
+            latest.iloc[0]["close"]
+        
+            -
+        
+            last10.iloc[0]["close"]
+    
+        )
+    
+        /
+    
+        last10.iloc[0]["close"]
+
+    ) * 100
+    atr_expansion = (
+    
+        latest.iloc[0]["ATR"]
+    
+        >
+    
+        last10["ATR"].mean() * 1.5
+
+    )
+    breakout_detected = (
+    
+        flat_market
+    
+        and
+    
+        atr_expansion
+    
+        and
+    
+        price_move_percent > 1
+
+    )
+    
     momentum_score = 0
     last5 = df.tail(5)
 
@@ -507,6 +553,9 @@ def predict_manual_trade(
         "sell_threshold": SELL_THRESHOLD,
         "roi_score": roi_score,
         "momentum_score": momentum_score,
+        "breakout_detected": breakout_detected,
+        "price_move_percent": round(price_move_percent,2),
+        "flat_market_before_breakout": flat_market,
 
         "catboost": round(
 
