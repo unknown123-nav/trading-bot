@@ -29,6 +29,17 @@ def fetch_news(symbol, breakout_time=None):
         from datetime import datetime, timedelta
 
         filtered_feed = []
+        save_trigger_candidate(
+            pair=symbol,
+            breakout_time=breakout_time,
+            headline=article["title"],
+            summary=article["summary"],
+            source=article["source"],
+            minutes_before=minutes,
+            sentiment=article["overall_sentiment_label"],
+            direction=breakout_direction,
+            move_percent=price_move_percent
+        )
         feed = data.get("feed", [])
         if breakout_time is None:
             return feed[:3]
