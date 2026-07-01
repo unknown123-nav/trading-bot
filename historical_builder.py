@@ -2,7 +2,6 @@ import mysql.connector
 import traceback
 
 from config import DB_CONFIG
-from news_fetcher import update_news
 
 print("HISTORICAL_BUILDER LOADED")
 
@@ -31,7 +30,13 @@ def save_training_signal(
         signal_class,
         market_state,
         frequency_type,
-        candle_type
+        candle_type,
+        trigger_headline,
+        trigger_summary,
+        trigger_source,
+        trigger_news_score,
+        minutes_before_breakout,
+        trigger_label
 ):
 
     print("SAVE_TRAINING_SIGNAL CALLED")
@@ -76,6 +81,13 @@ def save_training_signal(
 
         candle_type = str(candle_type)
 
+        trigger_headline = str(trigger_headline or "")
+        trigger_summary = str(trigger_summary or "")
+        trigger_source = str(trigger_source or "")
+        trigger_news_score = float(trigger_news_score or 0)
+        minutes_before_breakout = float(minutes_before_breakout or 0)
+        trigger_label = str(trigger_label or "")
+
         conn = mysql.connector.connect(**DB_CONFIG)
         cursor = conn.cursor()
 
@@ -118,6 +130,13 @@ def save_training_signal(
             frequency_type,
 
             candle_type,
+            trigger_headline,
+            trigger_summary,
+            trigger_source,
+            trigger_news_score,
+            minutes_before_breakout,
+            trigger_label,
+
 
             target
 
@@ -143,6 +162,12 @@ def save_training_signal(
 
             %s,
 
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
             %s,
 
             NULL
@@ -185,8 +210,13 @@ def save_training_signal(
 
             frequency_type,
 
-            candle_type
-
+            candle_type,
+            trigger_headline,
+            trigger_summary,
+            trigger_source,
+            trigger_news_score,
+            minutes_before_breakout,
+            trigger_label
         )
 
         print("Executing INSERT...")
@@ -202,13 +232,6 @@ def save_training_signal(
         print("COMMIT OK")
 
         print("Updating news...")
-
-        if signal_class != "NO TRADE":
-                update_news(
-                        training_id,
-                        pair,
-                        uk_time
-                )
 
         print("NEWS UPDATED")
 
