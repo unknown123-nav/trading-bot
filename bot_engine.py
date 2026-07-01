@@ -799,7 +799,20 @@ Time : {uk_time.strftime("%H:%M:%S")}
             breakout_direction=breakout["direction"],
             move_percent=breakout["move_percent"],
             expansion=breakout["expansion"],
-            trigger_news_score=trigger_news["impact_score"]
+            trigger_headline=trigger_news["title"] if trigger_news else "",
+
+            trigger_summary=trigger_news["summary"] if trigger_news else "",
+
+            trigger_source=trigger_news["source"] if trigger_news else "",
+
+
+            trigger_news_score=trigger_news["impact_score"] if trigger_news else 0,
+
+
+            minutes_before_breakout=trigger_news["minutes_before"] if trigger_news else 0,
+
+
+            trigger_label=None
 
         )
         print("Returned from save_training_signal()")
