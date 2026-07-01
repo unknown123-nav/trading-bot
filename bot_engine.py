@@ -527,7 +527,17 @@ def process_manual(symbol, timeframe, table_name):
                 breakout_direction=breakout["direction"],
                 move_percent=breakout["move_percent"],
                 expansion=breakout["expansion"],
+                trigger_headline=trigger_news["title"],
+
+                trigger_summary=trigger_news["summary"],
+
+                trigger_source=trigger_news["source"],
+
                 trigger_news_score=trigger_news["impact_score"],
+
+                minutes_before_breakout=trigger_news["minutes_before"],
+
+                trigger_label = NULL
             )
             return
 
