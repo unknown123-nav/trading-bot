@@ -86,7 +86,10 @@ def save_training_signal(
         trigger_source = str(trigger_source or "")
         trigger_news_score = float(trigger_news_score or 0)
         minutes_before_breakout = float(minutes_before_breakout or 0)
-        trigger_label = str(trigger_label or "")
+        if trigger_label is None:
+                trigger_label = None
+        else:
+                trigger_label = int(trigger_label)
 
         conn = mysql.connector.connect(**DB_CONFIG)
         cursor = conn.cursor()
@@ -136,7 +139,10 @@ def save_training_signal(
             trigger_news_score,
             minutes_before_breakout,
             trigger_label,
-
+            breakout_strength,
+            breakout_direction,
+            move_percent,
+            expansion,
 
             target
 
