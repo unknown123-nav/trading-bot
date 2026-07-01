@@ -773,7 +773,11 @@ Time : {uk_time.strftime("%H:%M:%S")}
             frequency_type=frequency_type,
 
             candle_type=candle_type,
-            uk_time=get_uk_time()
+            uk_time=get_uk_time(),
+            breakout_strength=breakout["strength"],
+            breakout_direction=breakout["direction"],
+            move_percent=breakout["move_percent"],
+            expansion=breakout["expansion"]
 
         )
         print("Returned from save_training_signal()")
