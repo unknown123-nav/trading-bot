@@ -1,37 +1,165 @@
+import pandas as pd
 import numpy as np
 
 
-def detect_breakout(df):
+def detect_breakout(df, timeframe):
 
-    if len(df) < 12:
-        return False
+    """
+    Detect breakout after a flat market.
 
-    recent = df.tail(10)
+    Returns:
 
-    # Average range of previous candles
-    avg_range = (
-        (recent["high"] - recent["low"])
-        .head(9)
-        .mean()
-    )
+    {
+        "breakout": bool,
+        "direction": "UP"/"DOWN"/"NONE",
+        "strength": float,
+        "flat_before": bool
+    }
+    """
 
-    # Latest candle
+    if len(df) < 20:
+
+        return {
+            "breakout": False,
+            "direction": "NONE",
+            "strength": 0,
+            "flat_before": False
+        }
+
+    recent = df.tail(10).copy()
+
     latest = recent.iloc[-1]
 
-    latest_range = latest["high"] - latest["low"]
+    previous = recent.iloc[:-1]
 
-    # Trend before breakout
+    # ==========================================
+    # FLAT MARKET
+    # ==========================================
+
+    avg_atr = previous["ATR"].mean()
+
+    avg_trend = previous["TREND_STRENGTH"].mean()
+
+    avg_natr = previous["NATR"].mean()
+
+    flat_market = (
+
+        avg_trend < 0.35
+
+        and
+
+        avg_natr < 1.0
+
+    )
+
+    # ==========================================
+    # BREAKOUT SIZE
+    # ==========================================
+
+    candle_range = (
+
+        latest["high"]
+
+        -
+
+        latest["low"]
+
+    )
+
+    average_range = (
+
+        previous["high"]
+
+        -
+
+        previous["low"]
+
+    ).mean()
+
+    expansion = candle_range / max(average_range, 0.000001)
+
+    # ==========================================
+    # EMA BREAK
+    # ==========================================
+
     ema_gap = abs(
-        latest["EMA20"] -
+
+        latest["EMA20"]
+
+        -
+
         latest["EMA50"]
+
     ) / latest["EMA50"] * 100
 
-    trend = latest["TREND_STRENGTH"]
+    # ==========================================
+    # PRICE MOVE
+    # ==========================================
 
-    # Previous market should be flat
-    was_flat = trend < 0.40 and ema_gap < 0.30
+    first_close = previous.iloc[0]["close"]
 
-    # Breakout candle should be much larger
-    breakout = latest_range > avg_range * 2
+    last_close = latest["close"]
 
-    return was_flat and breakout
+    move_percent = (
+
+        abs(last_close - first_close)
+
+        /
+
+        first_close
+
+    ) * 100
+
+    # ==========================================
+    # DIRECTION
+    # ==========================================
+
+    if last_close > first_close:
+
+        direction = "UP"
+
+    else:
+
+        direction = "DOWN"
+
+    # ==========================================
+    # BREAKOUT SCORE
+    # ==========================================
+
+    score = 0
+
+    if flat_market:
+        score += 30
+
+    if expansion >= 2:
+        score += 25
+
+    elif expansion >= 1.5:
+        score += 15
+
+    if move_percent >= 1:
+        score += 25
+
+    elif move_percent >= 0.5:
+        score += 15
+
+    if ema_gap > 0.30:
+        score += 20
+
+    breakout = score >= 60
+
+    return {
+
+        "breakout": breakout,
+
+        "direction": direction,
+
+        "strength": round(score,2),
+
+        "flat_before": flat_market,
+
+        "move_percent": round(move_percent,2),
+
+        "expansion": round(expansion,2)
+
+    }
