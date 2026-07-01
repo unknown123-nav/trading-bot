@@ -372,37 +372,29 @@ def process_manual(symbol, timeframe, table_name):
     try:
 
         df = get_data(symbol, timeframe, 40)
-
-        if timeframe == "30m":
-            if not detect_breakout(df):
-                print(
-                    f"{symbol} 30m -> No breakout"
-                )
-                return
-                breakout_time = get_uk_time()
-                print(
-                    f"BREAKOUT AT {breakout_time}"
-                )
-            print(
-                f"{symbol} 30m -> BREAKOUT DETECTED"
-            )
-
-        if timeframe == "1H":
-            if not detect_breakout(df):
-                print(
-                    f"{symbol} 1H -> No breakout"
-                )
-                return
-                breakout_time = get_uk_time()
-                print(
-                    f"BREAKOUT AT {breakout_time}"
-                )
-            print(
-                f"{symbol} 1H -> BREAKOUT DETECTED"
-            )
-
         if df.empty:
             return
+
+        if timeframe in ["30m", "1H"]:
+            breakout = detect_breakout(df, timeframe)
+            if timeframe == "30m":
+                df_1h = get_data(symbol, "1H", 40)
+                if not df_1h.empty:
+                    breakout_1h = detect_breakout(df_1h, "1H")
+                    if breakout["direction"] != breakout_1h["direction"]:
+                        print(
+                            f"{symbol} 30m rejected - 1H disagrees"
+                        )
+                        return
+                        
+                    print(
+                        f"{symbol} confirmed by 1H trend"
+                    )
+            if not breakout["breakout"]:
+                print(f"{symbol} {timeframe} -> No breakout")
+                return
+                
+            breakout_time = get_uk_time()
 
         latest = float(df.iloc[0]["close"])
 
@@ -431,6 +423,15 @@ def process_manual(symbol, timeframe, table_name):
             articles
         )
 
+        if trigger_news is None:
+            print(f"{symbol} -> No trigger news")
+            return
+            
+        if trigger_news["impact_score"] < 50:
+            print(
+                f"{symbol} -> Weak trigger news ({trigger_news['impact_score']})"
+            )
+            return
         if trigger_news:
             print()
             print("TRIGGER NEWS")
@@ -439,14 +440,13 @@ def process_manual(symbol, timeframe, table_name):
             print()
         if articles:
 
-            news = {
-                "headline": articles[0].get("title", ""),
-                "summary": articles[0].get("summary", "")
-            }
-
-        else:
-
-            news = None
+            if trigger_news:
+                news = {
+                    "headline": trigger_news.get("title", ""),
+                    "summary": trigger_news.get("summary", "")
+                }
+            else:
+                news = None
 
         # ==============================
         # MANUAL AI
@@ -459,44 +459,39 @@ def process_manual(symbol, timeframe, table_name):
             news=news
         )
 
+        if ai_result is None:
+            return
         if ai_result["roi_score"] < 80:
             print(
                 f"ROI rejected ({ai_result['roi_score']})"
             )
             return
-        if ai_result is None:
-            return
+        
 
         roi_key = f"{symbol}_{timeframe}"
         if roi_state.get(roi_key, False):
-            exit_message = f"""
-            ROI EXIT
-            Pair : {symbol}
-            Timeframe : {timeframe}
-            The market is no longer inside the region of interest.
-            """
-            send_message(
-                MANUAL_CHAT_ID,
-                exit_message
-    
-            )
-            save_telegram_log(
-        
-                exit_message,
-        
-                "MANUAL_CHANNEL",
-        
-                "SENT"
-    
-            )
-            roi_state[roi_key] = False
-            roi_confirmation[roi_key] = 0
-            roi_last_signal.pop(roi_key, None)
-            roi_last_price.pop(roi_key, None)
-            roi_enter_time.pop(roi_key, None)
-            print(f"ROI ENDED -> {symbol} {timeframe}")
-
-        
+            if ai_result["signal"] == "NO TRADE":
+                exit_message = f"""
+                ROI EXIT
+                Pair : {symbol}
+                Timeframe : {timeframe}
+                Market has left the region of interest.
+                """
+                send_message(
+                    MANUAL_CHAT_ID,
+                    exit_message
+                )
+                save_telegram_log(
+                    exit_message,
+                    "MANUAL_CHANNEL",
+                    "SENT"
+                )
+                roi_state[roi_key] = False
+                roi_confirmation[roi_key] = 0
+                roi_last_signal.pop(roi_key, None)
+                roi_last_price.pop(roi_key, None)
+                roi_enter_time.pop(roi_key, None)
+                print(f"ROI ENDED -> {symbol} {timeframe}")
         if (
             ai_result["signal"] == "NO TRADE"
             and
@@ -505,7 +500,6 @@ def process_manual(symbol, timeframe, table_name):
             print(f"MANUAL AI -> NO TRADE | {symbol} {timeframe}")
             save_training_signal(
                 time=df.iloc[0]["time"],
-                uk_time=get_uk_time(),
                 pair=symbol,
                 timeframe=timeframe,
                 price=latest,
@@ -527,7 +521,12 @@ def process_manual(symbol, timeframe, table_name):
                 signal_class="NO TRADE",
                 market_state=ai_result["market_state"],
                 frequency_type=ai_result["frequency_type"],
-                candle_type=ai_result["candle_type"]
+                candle_type=ai_result["candle_type"],
+                uk_time=get_uk_time(),
+                breakout_strength=breakout["strength"],
+                breakout_direction=breakout["direction"],
+                move_percent=breakout["move_percent"],
+                expansion=breakout["expansion"]
             )
             return
 
@@ -566,7 +565,11 @@ def process_manual(symbol, timeframe, table_name):
 
         volatility = float(df.iloc[0]["NATR"])
 
-        uk_time=get_uk_time(),
+        trend_strength = float(
+            df.iloc[0]["TREND_STRENGTH"]
+        )
+
+        uk_time=get_uk_time()
 
         last_signal_time[key] = time.time()
 
@@ -574,10 +577,12 @@ def process_manual(symbol, timeframe, table_name):
         # TELEGRAM
         # ==============================
 
-        message = f"""
-📡 MANUAL AI SIGNAL
+       message = f"""
+MANUAL BREAKOUT SIGNAL
 
 Pair : {symbol}
+
+Timeframe : {timeframe}
 
 Direction : {direction}
 
@@ -593,35 +598,42 @@ Power Score : {power_score}
 
 Financial Strength : {financial_strength}
 
+Breakout Strength : {breakout["strength"]}
+
+Price Move : {breakout["move_percent"]}%
+
+Expansion : {breakout["expansion"]}
+
 Market State : {market_state}
 
 Frequency : {frequency_type}
 
 Candle : {candle_type}
 
-Timeframe : {timeframe}
+Trigger News :
 
-Breakout : {ai_result["breakout_detected"]}
+{trigger_news["title"]}
 
-Price Move : {ai_result["price_move_percent"]}%
+Impact Score : {trigger_news["impact_score"]}
 
-Time : {uk_time}
+Time : {uk_time.strftime("%H:%M:%S")}
 """
 
         if not inside_roi:
             if current_signal == previous_signal:
                 confirmation += 1
-
-             else:
-                 confirmation = 1
+            else:
+                confirmation = 1
                 
-             roi_confirmation[roi_key] = confirmation
-             print(
-                 f"{symbol} {timeframe} ROI Confirmation {confirmation}/3"
-             )
-            if confirmation >= 3:
-                roi_score = 0
+            roi_confirmation[roi_key] = confirmation
+            print(
+                f"{symbol} {timeframe} Confirmation {confirmation}/3"
+            )
+            if confirmation < 3:
+                roi_last_signal[roi_key] = current_signal
+                return
                 
+            roi_score = 0
             if trend_strength > 0.80:
                 roi_score += 20
                 
@@ -638,29 +650,21 @@ Time : {uk_time}
                 roi_score += 20
                 
             print(f"ROI Score : {roi_score}")
-            
             if roi_score < 80:
-                print(
-                    f"ROI rejected -> Score {roi_score}"
-                )
                 roi_confirmation[roi_key] = 0
+                roi_last_signal[roi_key] = current_signal
                 return
-                send_message(
                 
-                    MANUAL_CHAT_ID,
-                
-                    message
+            send_message(
+                MANUAL_CHAT_ID,
+                message
+            )
             
-                )
-                save_telegram_log(
-                
-                    message,
-                
-                    "MANUAL_CHANNEL",
-                
-                    "SENT"
-            
-                )
+            save_telegram_log(
+                message,
+                "MANUAL_CHANNEL",
+                "SENT"
+            )
             roi_state[roi_key] = True
             roi_last_signal[roi_key] = current_signal
             roi_last_price[roi_key] = latest
@@ -668,7 +672,40 @@ Time : {uk_time}
             roi_confirmation[roi_key] = 0
             print(f"ROI STARTED -> {symbol} {timeframe}")
         else:
-            print(f"ROI ACTIVE -> {symbol} {timeframe} (No Telegram)")
+            elapsed = (
+                time.time()
+                -
+        
+                roi_enter_time[roi_key]
+    
+            )
+            if elapsed > 7200:
+                roi_state[roi_key] = False
+                roi_confirmation[roi_key] = 0
+                roi_last_signal.pop(
+                    roi_key,
+                    None
+                )
+                roi_last_price.pop(
+                    roi_key,
+                    None
+                )
+                roi_enter_time.pop(
+                    roi_key,
+                    None
+                )
+                print(
+                    f"ROI expired -> {symbol} {timeframe}"
+                )
+            else:
+                remaining = int(
+            
+                    (7200 - elapsed) / 60
+       
+                )
+                print(
+                    f"ROI ACTIVE -> {symbol} {timeframe} ({remaining} min left)"
+                )
 
         # ==============================
         # SAVE SIGNAL
@@ -692,8 +729,6 @@ Time : {uk_time}
         save_training_signal(
 
             time=df.iloc[0]["time"],
-
-            uk_time=get_uk_time(),
 
             pair=symbol,
 
@@ -737,7 +772,8 @@ Time : {uk_time}
 
             frequency_type=frequency_type,
 
-            candle_type=candle_type
+            candle_type=candle_type,
+            uk_time=get_uk_time()
 
         )
         print("Returned from save_training_signal()")
