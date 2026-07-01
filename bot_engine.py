@@ -526,7 +526,8 @@ def process_manual(symbol, timeframe, table_name):
                 breakout_strength=breakout["strength"],
                 breakout_direction=breakout["direction"],
                 move_percent=breakout["move_percent"],
-                expansion=breakout["expansion"]
+                expansion=breakout["expansion"],
+                trigger_news_score=trigger_news["impact_score"],
             )
             return
 
@@ -615,6 +616,16 @@ Trigger News :
 {trigger_news["title"]}
 
 Impact Score : {trigger_news["impact_score"]}
+
+Sentiment Positive : {round(trigger_news["positive"],3)}
+
+Sentiment Negative : {round(trigger_news["negative"],3)}
+
+Keyword Score : {trigger_news["keyword_score"]}
+
+Timing Score : {trigger_news["timing_score"]}
+
+Source Score : {trigger_news["source_score"]}
 
 Time : {uk_time.strftime("%H:%M:%S")}
 """
@@ -777,7 +788,8 @@ Time : {uk_time.strftime("%H:%M:%S")}
             breakout_strength=breakout["strength"],
             breakout_direction=breakout["direction"],
             move_percent=breakout["move_percent"],
-            expansion=breakout["expansion"]
+            expansion=breakout["expansion"],
+            trigger_news_score=trigger_news["impact_score"]
 
         )
         print("Returned from save_training_signal()")
